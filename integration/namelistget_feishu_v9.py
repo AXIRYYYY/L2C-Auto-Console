@@ -30,6 +30,10 @@ from tkinter import filedialog
 CLI_DIRS = [a for a in sys.argv[1:] if a.strip()]
 USE_CLI = len(CLI_DIRS) >= 2
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
 # --- 核心改动：导入新的、更强大的PDF处理库 ---
 try:
     import fitz  # PyMuPDF库的导入名是fitz

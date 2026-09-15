@@ -9,12 +9,12 @@
   "inputs": [
     "日常/processed_invoices.xlsx（中间产物快照）"
   ],
-  "started_at": "2026-09-15 22:36:12",
+  "started_at": "2026-09-16 01:04:25",
   "dialogs": [],
   "outputs": [
     {
       "path": "summary_by_invoice_category.xlsx",
-      "bytes": 5030,
+      "bytes": 5032,
       "kind": "xlsx",
       "preview": {
         "sheets": [
@@ -53,5 +53,5 @@
   ],
   "log": "按发票类别分类汇总的结果已保存至路径：<工作区>\\invoice_category\\summary_by_invoice_category.xlsx\n",
   "exit_code": 0,
-  "duration_s": 0.5
+  "duration_s": 0.47
 }

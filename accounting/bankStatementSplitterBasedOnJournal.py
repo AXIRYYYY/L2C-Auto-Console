@@ -13,9 +13,15 @@
 """
 
 import os
+import sys
+
 from pypdf import PdfReader, PdfWriter
 import openpyxl
 from openpyxl import load_workbook
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 
 
 def check_unique_pdf():

@@ -10,7 +10,7 @@
     "日常/invoicesnumlist.xlsx",
     "日常/全量发票查询导出结果.xlsx"
   ],
-  "started_at": "2026-09-15 22:36:14",
+  "started_at": "2026-09-16 01:04:26",
   "dialogs": [],
   "outputs": [
     {
@@ -86,5 +86,5 @@
   ],
   "log": "当前脚本所在文件夹路径: <工作区>\\invoice_number_query\n成功读取 <工作区>\\invoice_number_query\\invoicesnumlist.xlsx 的第一列数据，数据形状为: (3, 1)\n成功读取目标文件 <工作区>\\invoice_number_query\\全量发票查询导出结果.xlsx 中 '发票基础信息' 工作表的标题行，标题为: ['序号', '发票号码', '数电票号码', '数电发票号码', '开票日期', '购买方名称', '销售方名称', '项目名称', '税率', '税额', '不含税金额', '价税合计金额', '开票人', '备注']\n成功读取目标文件 <工作区>\\invoice_number_query\\全量发票查询导出结果.xlsx 中 '发票基础信息' 工作表的全部数据，数据形状为: (4, 14)\n已成功将结果保存至 <工作区>\\invoice_number_query\\extracted_invoice_result.xlsx 文件中。\n",
   "exit_code": 0,
-  "duration_s": 0.95
+  "duration_s": 1.71
 }

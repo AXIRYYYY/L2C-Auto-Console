@@ -102,9 +102,11 @@ pytestmark_sample = pytest.mark.skipif(not SAMPLE.exists(), reason="需要 sampl
 
 
 def run_cli(script_rel, args, cwd):
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "utf-8"
     proc = subprocess.run(
         [PY, str(cwd / script_rel), *args],
-        cwd=str(cwd), capture_output=True, text=True,
+        cwd=str(cwd), capture_output=True, text=True, env=env,
         encoding="utf-8", errors="replace", timeout=180,
     )
     return proc
@@ -145,8 +147,19 @@ def test_compare_vouchers_cli(tmp_path):
     assert summary["删除的凭证数"] == 1
 
 
+def _generator_font():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("gen_sample", SAMPLE / "generate_sample_data.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.FONT_FILE
+
+
 @pytestmark_sample
 def test_split_vouchers_cli(tmp_path):
+    if _generator_font() is None:
+        pytest.skip("环境缺少 CJK 字体，样例 PDF 的中文文本不可被 pypdf 提取")
     script = "accounting/split_vouchers_凭证PDF拆分.py"
     stage(tmp_path, script)
     indir = tmp_path / "in"

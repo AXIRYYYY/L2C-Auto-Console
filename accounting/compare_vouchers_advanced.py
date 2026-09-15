@@ -33,6 +33,10 @@ DISSIMILARITY_THRESHOLD = 0.2
 CLI_FILES = [a for a in sys.argv[1:] if a.strip()]
 USE_CLI = len(CLI_FILES) >= 2
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
 
 def notify(title: str, message: str, error: bool = False) -> None:
     """命令行模式下打印日志，GUI 模式下弹窗"""

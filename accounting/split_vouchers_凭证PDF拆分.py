@@ -22,6 +22,10 @@ import tkinter as tk
 from tkinter import filedialog
 import sys
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
 def process_voucher_pdf_final_with_page_count():
     """
     主函数，用于选择、读取、拆分和合并凭证PDF文件。
