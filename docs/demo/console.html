@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L2C-Auto-Console · 业财流转自动化控制台</title>
+<style>
+:root{
+  --bg:#f4f6fa; --bg2:#edf1f7; --panel:#ffffff; --panel2:#f5f8fd;
+  --line:#dfe6f0; --line2:#c9d4e6;
+  --text:#1e2a3d; --muted:#5c6c85; --dim:#8a99b0;
+  --accent:#0284c7; --accent2:#06b6d4;
+  --ok:#059669; --warn:#b45309; --danger:#dc2626; --purple:#7c3aed; --gray:#64748b;
+  --mono:"Cascadia Code","JetBrains Mono",Consolas,"Courier New",monospace;
+  --sans:"Segoe UI","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.55;overflow-x:hidden}
+::selection{background:rgba(2,132,199,.22)}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#c6d2e2;border-radius:5px}
+::-webkit-scrollbar-track{background:transparent}
+
+#err{position:fixed;left:0;right:0;top:0;z-index:999;background:#7f1d1d;color:#fff;padding:8px 16px;font-family:var(--mono);font-size:12px;display:none;white-space:pre-wrap}
+
+header.top{position:sticky;top:0;z-index:60;background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(255,255,255,.92));backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top-inner{display:flex;align-items:center;gap:26px;padding:12px 26px}
+.brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+.brand .logo{font-family:var(--mono);font-weight:700;font-size:17px;letter-spacing:.5px;color:var(--text)}
+.brand .logo b{color:var(--accent)}
+.brand .sub{color:var(--muted);font-size:12px}
+nav.tabs{display:flex;gap:4px}
+nav.tabs button{background:transparent;border:1px solid transparent;color:var(--muted);padding:6px 15px;border-radius:7px;cursor:pointer;font-size:13px;font-family:var(--sans)}
+nav.tabs button:hover{color:var(--text);background:var(--panel)}
+nav.tabs button.on{color:var(--accent);background:#e9f5fd;border-color:#bcdcf3}
+.top-meta{margin-left:auto;display:flex;gap:18px;color:var(--dim);font-size:12px;white-space:nowrap}
+.top-meta b{color:var(--muted);font-family:var(--mono)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+
+main{padding:22px 26px 60px;max-width:1680px;margin:0 auto}
+section.view{display:none}
+section.view.on{display:block}
+h2.vh{font-size:15px;font-weight:600;margin-bottom:4px}
+p.vsub{color:var(--muted);font-size:12px;margin-bottom:18px}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden}
+.stat::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.7}
+.stat .n{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--text)}
+.stat .n small{font-size:13px;color:var(--muted);font-weight:400;margin-left:4px}
+.stat .l{color:var(--muted);font-size:12px;margin-top:2px}
+.stat.g::after{background:var(--ok)} .stat.p::after{background:var(--purple)} .stat.w::after{background:var(--warn)}
+
+.pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.pipe-col{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px;min-height:220px}
+.pipe-head{border-bottom:1px dashed var(--line2);padding-bottom:8px;margin-bottom:10px}
+.pipe-head .t{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.pipe-head .t .ic{font-family:var(--mono);color:var(--accent)}
+.pipe-head .d{color:var(--dim);font-size:11px;margin-top:3px;line-height:1.45}
+.card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gray);border-radius:9px;padding:10px 12px;margin-bottom:9px;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}
+.card:hover{transform:translateY(-1px);border-color:var(--line2);background:var(--panel2)}
+.card .nm{font-size:13px;font-weight:600;font-family:var(--mono);word-break:break-all}
+.card .pp{color:var(--muted);font-size:11.5px;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.badge{font-size:10.5px;padding:1px 7px;border-radius:20px;border:1px solid;white-space:nowrap;line-height:1.6}
+.badge.real{color:var(--ok);border-color:rgba(5,150,105,.4);background:rgba(5,150,105,.08)}
+.badge.sim{color:var(--warn);border-color:rgba(180,83,9,.4);background:rgba(180,83,9,.08)}
+.badge.doc{color:var(--dim);border-color:var(--line2);background:transparent}
+.badge.core{color:#047857;border-color:rgba(4,120,87,.35);background:rgba(4,120,87,.07)}
+.badge.active{color:var(--accent);border-color:rgba(2,132,199,.35);background:rgba(2,132,199,.07)}
+.badge.wip{color:var(--warn);border-color:rgba(180,83,9,.35);background:rgba(180,83,9,.07)}
+.badge.broken{color:var(--danger);border-color:rgba(220,38,38,.4);background:rgba(220,38,38,.08)}
+.badge.legacy{color:var(--gray);border-color:#aebacd;background:rgba(100,116,139,.08)}
+.badge.dead{color:#64748b;border-color:#b6c2d4;background:rgba(100,116,139,.06)}
+.badge.experiment{color:var(--purple);border-color:rgba(124,58,237,.35);background:rgba(124,58,237,.07)}
+
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:4px 12px;border-radius:20px;font-size:12px;cursor:pointer;user-select:none}
+.chip:hover{border-color:var(--line2);color:var(--text)}
+.chip.on{background:#e9f5fd;border-color:var(--accent);color:var(--accent)}
+.toolbar input[type=search]{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:5px 12px;border-radius:7px;font-size:12.5px;width:250px;outline:none;font-family:var(--sans)}
+.toolbar input[type=search]:focus{border-color:var(--accent)}
+.toolbar select{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:5px 10px;border-radius:7px;font-size:12.5px;outline:none}
+.legend{margin-left:auto;display:flex;gap:14px;color:var(--dim);font-size:11.5px;align-items:center}
+.legend i{display:inline-block;width:16px;height:0;border-top:2px solid var(--accent);vertical-align:middle;margin-right:5px}
+.legend i.con{border-top:2px dashed var(--purple)}
+.legend i.ext{border-top:2px dotted var(--warn)}
+
+.map-wrap{background:var(--bg2);border:1px solid var(--line);border-radius:12px;overflow:auto;margin-bottom:22px}
+#mapSvg{display:block}
+
+.catalog{background:var(--bg2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{position:sticky;top:0;background:#f0f4fa;text-align:left;padding:9px 12px;color:var(--muted);font-weight:600;font-size:11.5px;border-bottom:1px solid var(--line2);white-space:nowrap;z-index:2}
+tbody td{padding:8px 12px;border-bottom:1px solid #eaeff7;vertical-align:top}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#f7fafd}
+td .snm{font-family:var(--mono);font-size:12px;color:var(--text);word-break:break-all}
+td .sp{color:var(--muted);font-size:11.5px;max-width:420px}
+td .flow{color:var(--dim);font-family:var(--mono);font-size:11px;max-width:330px;word-break:break-all}
+.sect-t{font-size:13px;font-weight:600;margin:26px 0 10px;color:var(--text);display:flex;align-items:center;gap:8px}
+.sect-t .line{flex:1;height:1px;background:var(--line)}
+
+.audit-grid{display:grid;grid-template-columns:1fr 1.35fr;gap:16px}
+.panel{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:16px}
+.panel h3{font-size:13px;font-weight:600;margin-bottom:12px;color:#fff}
+.vsel{display:flex;gap:8px;margin-bottom:14px}
+.vsel button{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--text);cursor:pointer;text-align:left;font-family:var(--mono)}
+.vsel button.on{border-color:var(--accent);background:#e9f5fd}
+.vsel button .v{font-size:15px;font-weight:700;color:var(--text)}
+.vsel button .s{color:var(--muted);font-size:11px;margin-top:2px}
+.chain{position:relative;padding-left:26px}
+.chain::before{content:"";position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,var(--accent),rgba(56,189,248,.06))}
+.step{position:relative;margin-bottom:16px}
+.step::before{content:"";position:absolute;left:-24px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--panel);border:2px solid var(--accent);box-shadow:0 0 8px rgba(56,189,248,.5)}
+.step .st{font-weight:600;font-size:12.5px}
+.step .sd{color:var(--muted);font-size:11.5px;margin-top:2px}
+.step .files{margin-top:7px;display:flex;flex-direction:column;gap:4px}
+.file-line{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 9px}
+.file-line .fi{color:var(--accent)}
+.file-line .fs{margin-left:auto;color:var(--dim);font-size:11px;white-space:nowrap}
+.audit-note{color:var(--dim);font-size:11.5px;margin-top:12px;line-height:1.6}
+
+.kpi-bars{display:flex;flex-direction:column;gap:16px}
+.kbar .khead{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px}
+.kbar .khead .kk{font-weight:600}
+.kbar .khead .ki{font-family:var(--mono);color:var(--ok);font-weight:700}
+.krow{display:grid;grid-template-columns:110px 1fr 170px;gap:10px;align-items:center;font-size:12px;margin-bottom:5px}
+.krow .kl{color:var(--muted);text-align:right}
+.krow .track{background:#e8edf5;border-radius:6px;height:18px;overflow:hidden;display:flex}
+.krow .fill{height:100%;border-radius:6px}
+.krow .fill.before{background:linear-gradient(90deg,#a9b6ca,#c3cedd)}
+.krow .fill.after{background:linear-gradient(90deg,#0284c7,#22d3ee)}
+.krow .kv{font-family:var(--mono);color:var(--text);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbasis{color:var(--dim);font-size:11px;line-height:1.55;margin:2px 0 12px 120px}
+.kpi-note{margin-top:20px;color:var(--dim);font-size:11.5px;border-top:1px dashed var(--line2);padding-top:12px;line-height:1.7}
+
+#drawer{position:fixed;top:0;right:-520px;bottom:0;width:500px;background:#ffffff;border-left:1px solid var(--line2);z-index:80;transition:right .22s ease;display:flex;flex-direction:column;box-shadow:-24px 0 60px rgba(15,23,42,.18)}
+#drawer.on{right:0}
+.dr-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:12px}
+.dr-head .dh-t{flex:1}
+.dr-head .dh-t h3{font-size:15px;font-weight:700;word-break:break-all}
+.dr-head .dh-t .p{font-family:var(--mono);color:var(--dim);font-size:11px;margin-top:3px;word-break:break-all}
+.dr-close{background:transparent;border:1px solid var(--line2);color:var(--muted);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:14px;line-height:1}
+.dr-close:hover{color:#fff;border-color:var(--accent)}
+.dr-body{flex:1;overflow-y:auto;padding:16px 20px 40px}
+.sec{margin-bottom:18px}
+.sec .st{font-size:11px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px}
+.sec .purpose{font-size:13px;line-height:1.65}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.kv-list{display:flex;flex-direction:column;gap:6px}
+.kv-item{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:12px}
+.kv-item .kk{color:var(--dim);font-size:10.5px;margin-bottom:2px}
+.kv-item .vv{font-family:var(--mono);font-size:11.5px;word-break:break-all}
+.kv-item ul{margin:0;padding-left:16px}
+.kv-item li{margin:1px 0;font-family:var(--mono);font-size:11.5px}
+.notes{color:var(--muted);font-size:12px;line-height:1.7}
+.notes li{margin-bottom:3px}
+.link{color:var(--accent);cursor:pointer;text-decoration:none}
+.link:hover{text-decoration:underline}
+.logbox{background:#f8fafd;border:1px solid var(--line2);border-radius:9px;padding:12px;font-family:var(--mono);font-size:11.5px;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow-y:auto;color:#334155;line-height:1.6}
+.logbox .ok{color:var(--ok)} .logbox .warn{color:var(--warn)} .logbox .err{color:var(--danger)}
+.log-actions{display:flex;gap:8px;margin-top:8px}
+.btn{background:var(--panel);border:1px solid var(--line2);color:var(--text);border-radius:7px;padding:5px 13px;cursor:pointer;font-size:12px;font-family:var(--sans)}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:rgba(56,189,248,.14);border-color:var(--accent);color:#fff}
+.out-card{background:var(--panel);border:1px solid var(--line);border-radius:9px;margin-bottom:10px;overflow:hidden}
+.out-head{display:flex;align-items:center;gap:8px;padding:8px 11px;cursor:pointer;font-family:var(--mono);font-size:11.5px}
+.out-head:hover{background:var(--panel2)}
+.out-head .of{margin-left:auto;color:var(--dim);white-space:nowrap;font-size:11px}
+.out-prev{padding:0 11px 11px}
+.pv-table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)}
+.pv-table td,.pv-table th{border:1px solid #dbe3ef;padding:3px 7px;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-table th{background:#f0f4fa;color:var(--muted)}
+.pv-note{color:var(--dim);font-size:11px;font-family:var(--mono)}
+.pv-text{background:#f8fafd;border:1px solid var(--line);border-radius:6px;padding:8px;font-family:var(--mono);font-size:11px;white-space:pre-wrap;max-height:180px;overflow:auto;color:#475569}
+
+.fidelity{border:1px solid var(--line2);border-radius:10px;padding:12px 14px;margin-bottom:14px;background:linear-gradient(180deg,rgba(5,150,105,.07),transparent)}
+.fidelity.sim{background:linear-gradient(180deg,rgba(180,83,9,.07),transparent)}
+.fidelity .ft{display:flex;align-items:center;gap:10px;font-weight:600;font-size:12.5px}
+.fidelity .fm{color:var(--muted);font-size:11.5px;margin-top:6px;line-height:1.6}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:1400px){.pipeline{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div id="err"></div>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <div class="logo">L2C<b>-</b>AUTO<b>-</b>CONSOLE</div>
+      <div class="sub">业财流转自动化控制台 · 功能关联 · 回放演示</div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button data-view="overview" class="on">总览</button>
+      <button data-view="map">功能地图</button>
+      <button data-view="audit">审计追溯</button>
+      <button data-view="kpi">KPI</button>
+    </nav>
+    <div class="top-meta" id="topMeta"></div>
+  </div>
+</header>
+
+<main>
+  <section class="view on" id="view-overview">
+    <div class="stats" id="stats"></div>
+    <h2 class="vh">业务流水线 · 模块总览</h2>
+    <p class="vsub">点击任意模块卡片查看功能档案；带「实测回放」标记的模块可播放真实脚本运行日志与产物快照；业务脚本实现未公开，回放为真实执行的采集快照。</p>
+    <div class="pipeline" id="pipeline"></div>
+  </section>
+
+  <section class="view" id="view-map">
+    <h2 class="vh">数据流功能地图</h2>
+    <p class="vsub" id="mapSub"></p>
+    <div class="toolbar">
+      <div class="chips" id="stageChips"></div>
+      <span class="chip" id="allVerChip">全部版本（含历史）</span>
+      <input type="search" id="search" placeholder="搜索脚本 / 用途 / 产物…">
+      <div class="legend">
+        <span><i></i>脚本间数据流（悬停查看中间产物）</span>
+        <span><i class="ext"></i>外部数据源输入 ⇐</span>
+      </div>
+    </div>
+    <div class="map-wrap"><svg id="mapSvg"></svg></div>
+    <div class="sect-t"><span>脚本全目录</span><span class="line"></span><span style="color:var(--dim);font-weight:400;font-size:12px" id="catCount"></span></div>
+    <div class="catalog">
+      <table>
+        <thead><tr><th style="width:200px">脚本</th><th>用途</th><th style="width:64px">阶段</th><th style="width:86px">状态</th><th style="width:52px">核心</th><th>数据流</th><th style="width:74px">回放</th></tr></thead>
+        <tbody id="catBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="view" id="view-audit">
+    <h2 class="vh">审计追溯 · 一笔凭证的证据链</h2>
+    <p class="vsub">从整本记账凭证到审计提取，全链路中间产物可追溯（基于 sample_data 生成假数据的真实现场回放）。</p>
+    <div class="audit-grid">
+      <div class="panel">
+        <h3>凭证选择</h3>
+        <div class="vsel" id="vsel"></div>
+        <div id="vsummary"></div>
+      </div>
+      <div class="panel">
+        <h3>证据链</h3>
+        <div class="chain" id="chain"></div>
+        <div class="audit-note" id="auditNote"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-kpi">
+    <h2 class="vh">效能指标</h2>
+    <p class="vsub">口径来自 README 的业务记录，本演示作为示意展示（非实测基准）。</p>
+    <div class="panel"><div class="kpi-bars" id="kpiBars"></div><div class="kpi-note" id="kpiNote"></div></div>
+  </section>
+</main>
+
+<aside id="drawer">
+  <div class="dr-head">
+    <div class="dh-t"><h3 id="drTitle"></h3><div class="p" id="drPath"></div></div>
+    <button class="dr-close" id="drClose">✕</button>
+  </div>
+  <div class="dr-body" id="drBody"></div>
+</aside>
+
+<script>
+window.__CONSOLE_DATA__ = {"meta": {"title": "L2C-Auto-Console 功能关联地图", "subtitle": "业财流转自动化脚本集 · 内部功能关联档案", "generated_at": "2026-09-14", "generator": "docs/demo/build_console.py", "source_repo": "本地工作仓库（未公开）", "public_scope": "公开内容仅含演示层（控制台/文档/回放数据/生成器）；业务脚本实现未公开，回放为真实执行的采集快照", "total_scripts": 59, "tracked_scripts": 18, "relation_model": "数据流二部图：脚本 ↔ 中间产物 ↔ 业务阶段（脚本之间无代码级 import，关联全部通过文件/剪贴板约定建立）"}, "stages": [{"id": "daily", "name": "日常", "icon": "◉", "color": "#2563eb", "desc": "实时：凭证摘要生成、发票核验分类、OFD 格式转换"}, {"id": "monthend", "name": "月底", "icon": "◧", "color": "#7c3aed", "desc": "批量：审批单重命名、资料包匹配整合、检索归集"}, {"id": "archive", "name": "归档", "icon": "▣", "color": "#d97706", "desc": "核算：凭证比对、PDF 拆分、审计提取、银行流水拆分"}, {"id": "aux", "name": "辅助", "icon": "◇", "color": "#059669", "desc": "支撑：报表合并、文件治理、脱敏、文档渲染"}, {"id": "experiment", "name": "实验", "icon": "△", "color": "#64748b", "desc": "探索：Selenium 网页自动化，未接入生产链路"}], "statuses": {"core": {"label": "核心脚本", "color": "#059669", "desc": "生产在用；代码未公开，通过功能地图与回放展示"}, "active": {"label": "在用", "color": "#2563eb", "desc": "实际在用（本地工具/内部脚本，未公开）"}, "wip": {"label": "半成品", "color": "#b45309", "desc": "逻辑未完成或依赖未配置，不可直接投产"}, "broken": {"label": "无法运行", "color": "#dc2626", "desc": "存在语法/未定义变量等硬伤，当前不可运行"}, "legacy": {"label": "已被替代", "color": "#64748b", "desc": "历史版本或被替代版本，谱系中保留作对照"}, "dead": {"label": "已废弃", "color": "#4b5563", "desc": "一次性用途已完成或环境写死，不再使用"}, "experiment": {"label": "实验性", "color": "#7c3aed", "desc": "技术验证，明确未接入生产链路"}}, "systems": {"feishu": {"name": "飞书审批", "kind": "upstream", "desc": "审批单、附件、多维表格（数据源头）"}, "dingtalk": {"name": "钉钉表单", "kind": "upstream", "desc": "导出的 PDF 表单（本地检索对接）"}, "chanjet": {"name": "畅捷通财务", "kind": "both", "desc": "凭证草稿箱、利润表/现金流量表、科目余额表（Excel/PDF 导出）"}, "bank": {"name": "银行流水", "kind": "upstream", "desc": "各银行回单 PDF（浙商/农行/支付宝等）"}, "invoice": {"name": "发票（数电/OFD）", "kind": "upstream", "desc": "员工提交的电子发票 PDF/OFD"}, "disk": {"name": "本地磁盘", "kind": "internal", "desc": "D 盘凭证工作区、项目根目录工作区"}}, "artifacts": {"clip_feishu_text": {"name": "剪贴板：飞书审批详情文本", "kind": "clipboard", "system": "feishu"}, "std_filename": {"name": "剪贴板：标准凭证摘要文件名", "kind": "clipboard"}, "approval_pdf_raw": {"name": "审批单 PDF（无固定文件名）", "kind": "file", "system": "feishu"}, "approval_pdf_renamed": {"name": "重命名审批单 {关键字}-{编号}-{单据号}-{申请人}-{状态}-{序号}.pdf", "kind": "file"}, "attachment_folder": {"name": "附件文件夹（名称含审批编号）", "kind": "folder", "system": "feishu"}, "namelist": {"name": "namelist.xlsx（待流转凭证关键词清单）", "kind": "file"}, "search_results_dir": {"name": "搜索结果/（资料包）", "kind": "folder"}, "merged_keyword_pdf": {"name": "{关键词}.pdf（合并资料包）", "kind": "file"}, "keyword_pdf_map": {"name": "关键词与PDF文件对应表.xlsx", "kind": "file"}, "merge_error_report": {"name": "合并文件报错信息.xlsx", "kind": "file"}, "dingding_num": {"name": "num.xlsx（钉钉检索关键词清单）", "kind": "file"}, "dingding_search_dir": {"name": "搜索结果/（钉钉 PDF 副本）", "kind": "folder", "system": "dingtalk"}, "dingding_result_xlsx": {"name": "search_results_{时间戳}.xlsx", "kind": "file"}, "invoice_pdf_pool": {"name": "待处理发票 PDF 池（递归扫描）", "kind": "folder", "system": "invoice"}, "invoice_master": {"name": "全量发票查询导出结果.xlsx（发票基础信息表）", "kind": "file"}, "processed_invoices": {"name": "processed_invoices.xlsx（发票匹配台账）", "kind": "file"}, "invoice_category_summary": {"name": "summary_by_invoice_category.xlsx（分类汇总）", "kind": "file"}, "extract_result_dir": {"name": "提取结果/（提取成功｜提取失败）", "kind": "folder"}, "unprocessed_files": {"name": "unprocessed_files.xlsx（未匹配清单）", "kind": "file"}, "invoices_numlist": {"name": "invoicesnumlist.xlsx（发票号码清单）", "kind": "file"}, "extracted_invoice_result": {"name": "extracted_invoice_result.xlsx", "kind": "file"}, "ofd_files": {"name": "OFD 电子发票/文档", "kind": "folder", "system": "invoice"}, "converted_pdf": {"name": "转换后的 PDF", "kind": "file"}, "draft_vouchers": {"name": "凭证草稿箱（畅捷通）", "kind": "external", "system": "chanjet"}, "voucher_pdf_full": {"name": "记账凭证 PDF（整本）", "kind": "file", "system": "chanjet"}, "split_voucher_dir": {"name": "{凭证名}_拆分结果/（{年月}-{凭证号}-{N}页.pdf）", "kind": "folder"}, "voucher_list_old": {"name": "修改前凭证清单 xlsx", "kind": "file"}, "voucher_list_new": {"name": "修改后凭证清单 xlsx", "kind": "file"}, "voucher_compare_dir": {"name": "凭证比对结果_{时间戳}/（含差异报告）", "kind": "folder"}, "manifest_xlsx": {"name": "凭证清单 Excel（凭证类别/号/日期）", "kind": "file"}, "audit_extract_dir": {"name": "凭证提取结果_{时间戳}/（含提取结果报告.xlsx）", "kind": "folder"}, "bank_pdf": {"name": "银行流水 PDF（唯一文件）", "kind": "file", "system": "bank"}, "journal_xlsx": {"name": "电子日记账 xlsx（唯一文件）", "kind": "file", "system": "chanjet"}, "bank_split_dir": {"name": "分割完成/{标签}.pdf", "kind": "folder"}, "profit_xlsx": {"name": "利润表*.xlsx（畅捷通月度）", "kind": "file", "system": "chanjet"}, "merged_profit": {"name": "合并利润表_带行次_{时间戳}.xlsx", "kind": "file"}, "cashflow_xlsx": {"name": "现金流量表*.xlsx（畅捷通月度）", "kind": "file", "system": "chanjet"}, "merged_cashflow": {"name": "现金流量表合并_{时间戳}.xlsx", "kind": "file"}, "processed_files_xlsx": {"name": "processed_files.xlsx（审批单金额/日期汇总）", "kind": "file"}, "monthly_workdir": {"name": "月度工作目录（发票处理/流水/飞书/报销附件…）", "kind": "folder"}, "disk_search_result": {"name": "搜索结果/（D 盘检索副本）", "kind": "folder", "system": "disk"}, "report_md": {"name": "文件整理分析报告.md", "kind": "file"}, "demo_data": {"name": "data/ 四表（审批数据总表/项目清单/采购合同/客户商机）", "kind": "folder"}, "desensitized_summary": {"name": "4表脱敏汇总结果.xlsx", "kind": "file"}, "trip_report_xlsx": {"name": "员工出差统计表.xlsx（示例数据）", "kind": "file"}, "intercompany_result": {"name": "处理结果.xlsx + 搜索结果/（关联方清理，半成品）", "kind": "file"}, "pdf_text_compare_dir": {"name": "PDF文本比对结果_{时间戳}/", "kind": "folder"}, "duplicate_action": {"name": "重复文件处理（回收站/重复文件目录）", "kind": "folder"}, "combined_xlsx": {"name": "combined_data.xlsx（多表纵向合并）", "kind": "file"}, "web_downloaded_files": {"name": "下载文件（Edge Secure_Downloads 目录）", "kind": "folder"}, "split_bank_pages": {"name": "切割后的银行流水（WPS 人工排版）", "kind": "file", "system": "bank"}, "pdf_images": {"name": "PDF 转出的图片（打印用）", "kind": "folder"}, "intercompany_infos": {"name": "column_info.xlsx / 新建xlsx文件.xlsx（列映射配置）", "kind": "file"}}, "scripts": [{"id": "integration/get_filename_from_feishu.py", "name": "get_filename_from_feishu", "purpose": "监控剪贴板的飞书审批详情，生成「单据类型-编号-单据编号-申请人」标准文件名并回写剪贴板", "stage": "daily", "tracked": true, "status": "core", "status_note": "剪贴板监控 v4.6，含申请人人工修正兜底", "interactive": ["tkinter GUI", "pyperclip"], "inputs": ["飞书审批详情页全选复制文本"], "input_refs": ["clip_feishu_text"], "outputs": ["标准文件名（写入剪贴板，供凭证摘要使用）"], "output_refs": ["std_filename"], "deps": ["pyperclip"], "core_chain": true, "notes": ["滑动窗口：以「审批详情」为锚点向前 1000 / 向后 2000 字符截取，容忍页面结构局部变化", "申请人识别失败时弹出人工修正框，展示「错误」占位", "部门词表需按公司实际维护（正则硬编码）"], "supersedes": null, "superseded_by": null}, {"id": "file_processing/134_invoicetofoldertxtclose.py", "name": "134_invoicetofoldertxtclose", "purpose": "发票 PDF 号码匹配全量发票表 + 5 类关键词分类，输出台账与成功/失败归档", "stage": "daily", "tracked": true, "status": "core", "status_note": "发票核验最新版（序号+发票类别+提取结果目录）", "interactive": [], "inputs": ["待处理发票 PDF 池（递归）", "全量发票查询导出结果.xlsx（发票基础信息）"], "input_refs": ["invoice_pdf_pool", "invoice_master"], "outputs": ["提取结果/processed_invoices.xlsx", "提取结果/unprocessed_files.xlsx", "提取成功/提取失败副本（序号_原名.pdf）"], "output_refs": ["processed_invoices", "unprocessed_files", "extract_result_dir"], "deps": ["openpyxl", "pdfplumber"], "core_chain": true, "notes": ["8 位号码查「发票号码」列、20 位查「数电发票号码」列", "关键词：住宿服务/餐饮服务/汽油/通行费/停车 → 第 24 列「发票类别」", "自动排除 提取结果/ 目录避免自我循环"], "supersedes": "file_processing/invoicetofoldertxtclose_v1.py", "superseded_by": null}, {"id": "accounting/invoice.py", "name": "invoice", "purpose": "发票 PDF 提取号码并匹配全量发票表，输出根目录台账（含逐票 TXT 文本快照）", "stage": "daily", "tracked": true, "status": "active", "status_note": "核心脚本；输出的 processed_invoices.xlsx 是分类汇总的上游", "interactive": [], "inputs": ["待处理发票 PDF 池（递归）", "全量发票查询导出结果.xlsx"], "input_refs": ["invoice_pdf_pool", "invoice_master"], "outputs": ["processed_invoices.xlsx（根目录）", "unprocessed_files.xlsx", "提取结果/提取成功｜提取失败", "同名 .txt 文本快照"], "output_refs": ["processed_invoices", "unprocessed_files", "extract_result_dir"], "deps": ["openpyxl", "pdfplumber"], "core_chain": false, "notes": ["会为每张 PDF 落一份 .txt 全文，便于人工核查", "台账输出在根目录，直接对接 summary_by_invoice_category.py"], "supersedes": "archive/invoice_2024-12-13.py", "superseded_by": null}, {"id": "accounting/summary_by_invoice_category.py", "name": "summary_by_invoice_category", "purpose": "按发票类别汇总价税合计金额，生成分类汇总表（含合计行）", "stage": "daily", "tracked": true, "status": "core", "status_note": "发票核验的下游汇总，列索引与 processed_invoices 约定对齐", "interactive": [], "inputs": ["processed_invoices.xlsx（根目录）"], "input_refs": ["processed_invoices"], "outputs": ["summary_by_invoice_category.xlsx（发票类别 × 金额 + 合计）"], "output_refs": ["invoice_category_summary"], "deps": ["openpyxl"], "core_chain": true, "notes": ["读取第 24 列类别 / 第 16 列价税合计（索引 23/15），字段位置是硬约定"], "supersedes": null, "superseded_by": null}, {"id": "accounting/invoice_data_extractor.py", "name": "invoice_data_extractor", "purpose": "按发票号码清单批量从全量发票表中回捞完整发票信息", "stage": "daily", "tracked": true, "status": "core", "status_note": "号码清单驱动的批量查询工具", "interactive": [], "inputs": ["invoicesnumlist.xlsx（第一列号码）", "全量发票查询导出结果.xlsx（发票基础信息）"], "input_refs": ["invoices_numlist", "invoice_master"], "outputs": ["extracted_invoice_result.xlsx（提取数字 + 完整发票字段）"], "output_refs": ["extracted_invoice_result"], "deps": ["pandas"], "core_chain": true, "notes": ["按号码长度路由到「发票号码」或「数电票号码」列", "未匹配行保留原号并打印提示"], "supersedes": null, "superseded_by": null}, {"id": "file_processing/convert_all.py", "name": "convert_all", "purpose": "把根目录 OFD 文件批量转换为 PDF（PyMuPDF，带详细错误诊断）", "stage": "daily", "tracked": true, "status": "core", "status_note": "OFD 格式防火墙，输出供发票/凭证链路使用", "interactive": ["input() 回车退出"], "inputs": ["根目录 *.ofd 文件"], "input_refs": ["ofd_files"], "outputs": ["同名 .pdf（已存在则跳过）"], "output_refs": ["converted_pdf"], "deps": ["PyMuPDF"], "core_chain": true, "notes": ["直接 fitz.open(ofd) → save(pdf)，依赖新版 PyMuPDF 的 OFD 支持", "打印 traceback 便于定位个别损坏文件"], "supersedes": "file_processing/ofdtopdf.py", "superseded_by": null}, {"id": "file_processing/invoicetofoldertxtclose_v1.py", "name": "invoicetofoldertxtclose_v1", "purpose": "发票 PDF 匹配全量发票表并分类归档（3 类关键词旧版）", "stage": "daily", "tracked": false, "status": "legacy", "status_note": "134 版前身：输出目录/列结构与关键词均被扩充", "interactive": [], "inputs": ["待处理发票 PDF 池", "全量发票查询导出结果.xlsx"], "input_refs": ["invoice_pdf_pool", "invoice_master"], "outputs": ["提取结果/processed_invoices.xlsx", "提取成功/提取失败副本"], "output_refs": ["processed_invoices", "extract_result_dir"], "deps": ["openpyxl", "pdfplumber"], "core_chain": false, "notes": ["关键词仅 住宿服务/餐饮服务/汽油", "写死「提取结果」为其下目录名"], "supersedes": null, "superseded_by": "file_processing/134_invoicetofoldertxtclose.py"}, {"id": "file_processing/ofdtopdf.py", "name": "ofdtopdf", "purpose": "根目录 OFD 转 PDF（easyofd，早期版本）", "stage": "daily", "tracked": false, "status": "dead", "status_note": "Py2 语法残留（setdefaultencoding）导致 Py3 直接报错", "interactive": [], "inputs": ["根目录 *.ofd"], "input_refs": ["ofd_files"], "outputs": ["同名 .pdf"], "output_refs": ["converted_pdf"], "deps": ["easyofd"], "core_chain": false, "notes": ["sys.setdefaultencoding 为 Python 2 写法，运行即 AttributeError", "已被 convert_all.py（fitz 方案）取代"], "supersedes": null, "superseded_by": "file_processing/convert_all.py"}, {"id": "file_processing/pdf_processor_for_approval.py", "name": "pdf_processor_for_approval", "purpose": "提取审批单 PDF 的申请人/申请编号/单据编号/审批状态/单据类型，按标准格式批量重命名", "stage": "monthend", "tracked": true, "status": "core", "status_note": "月底资料包第一步：把「无固定文件名」的审批单变为可检索命名", "interactive": [], "inputs": ["项目根目录下的审批单 PDF（递归仅根目录一层）"], "input_refs": ["approval_pdf_raw"], "outputs": ["{关键字}-{申请编号}-{单据编号}-{申请人}-{审批状态}-{序号}.pdf"], "output_refs": ["approval_pdf_renamed"], "deps": ["PyMuPDF", "pdfplumber"], "core_chain": true, "notes": ["申请人同名时以出现次数作序号后缀", "关键字表覆盖 12 种审批类型（差旅/招待/采购/付款/开票…）", "非法字符清洗后再拼文件名"], "supersedes": "202602/飞书/pdf_processor_for_approval.py", "superseded_by": null}, {"id": "integration/namelistget_feishu_v9.py", "name": "namelistget_feishu_v9", "purpose": "按 namelist 关键词匹配「报销单文件夹 + 附件 + 关联申请单」，复制归集、合并为资料包 PDF 并提取成本编号", "stage": "monthend", "tracked": true, "status": "core", "status_note": "月底资料包核心：复制→关联→合并→对账表，一条龙", "code_public": true, "interactive": ["tkinter.filedialog", "input()"], "inputs": ["namelist.xlsx（A 列关键词）", "关键词文件源文件夹（弹窗选择）", "差旅申请单搜索文件夹（弹窗选择）"], "input_refs": ["namelist", "attachment_folder", "approval_pdf_renamed"], "outputs": ["搜索结果/{关键词}/ 资料包", "搜索结果/{关键词}.pdf 合并件", "关键词与PDF文件对应表.xlsx", "合并文件报错信息.xlsx"], "output_refs": ["search_results_dir", "merged_keyword_pdf", "keyword_pdf_map", "merge_error_report"], "deps": ["openpyxl", "pandas", "PyMuPDF", "Pillow", "pypdf"], "core_chain": true, "notes": ["识别主报销单「-{关键词}」与关联申请单「XXCLSQ...」，图片附件转 PDF 后合并", "从申请单提取「成本编号/名称」并回填对应表", "合并失败时把文件夹重命名为「合并失败_」并记录错误报告（数据可追溯）"], "supersedes": "integration/namelistget_with_folder.py", "superseded_by": null}, {"id": "integration/namelistget_with_folder.py", "name": "namelistget_with_folder", "purpose": "按关键词从 D 盘搜索复制文件与整个文件夹（v2.0）", "stage": "monthend", "tracked": false, "status": "legacy", "status_note": "v1 的文件夹整包复制增强版，后被 v9 资源包版取代", "interactive": ["input()"], "inputs": ["namelist.xlsx", "D:/ 全盘文件"], "input_refs": ["namelist", "disk_search_result"], "outputs": ["搜索结果/（文件+文件夹副本）"], "output_refs": ["search_results_dir"], "deps": ["openpyxl"], "core_chain": false, "notes": ["D:/ 全盘 os.walk，权限失败仅打印跳过", "新增文件夹整包 copytree"], "supersedes": "integration/namelistget.py", "superseded_by": "integration/namelistget_feishu_v9.py"}, {"id": "integration/namelistget.py", "name": "namelistget", "purpose": "按关键词从 D 盘搜索并复制文件（v1 原型）", "stage": "monthend", "tracked": false, "status": "legacy", "status_note": "全盘搜索原型", "interactive": [], "inputs": ["namelist.xlsx", "D:/ 全盘文件"], "input_refs": ["namelist", "disk_search_result"], "outputs": ["搜索结果/"], "output_refs": ["search_results_dir"], "deps": ["openpyxl"], "core_chain": false, "notes": ["逐关键词全盘遍历，性能差", "结果目录固定为项目根目录/搜索结果"], "supersedes": null, "superseded_by": "integration/namelistget_with_folder.py"}, {"id": "202602/飞书/namelistget_current file_forfeishu_v9.0增加来源可选参数.py", "name": "namelistget_v9.0（来源可选参数变体）", "purpose": "v9.0 变体：新增关键词来源可选参数（自动/弹窗）", "stage": "monthend", "tracked": false, "status": "legacy", "status_note": "与 integration 主版本功能等价，仅 script_dir 解析与来源开关不同", "interactive": ["tkinter.filedialog", "input()"], "inputs": ["namelist.xlsx", "关键词源文件夹（KEYWORD_SOURCE_MODE=2 弹窗）"], "input_refs": ["namelist", "attachment_folder"], "outputs": ["搜索结果/、{关键词}.pdf、对应表.xlsx、报错信息.xlsx"], "output_refs": ["search_results_dir", "merged_keyword_pdf", "keyword_pdf_map", "merge_error_report"], "deps": ["openpyxl", "pandas", "PyMuPDF", "Pillow", "pypdf"], "core_chain": false, "notes": ["KEYWORD_SOURCE_MODE 1=脚本目录 2=弹窗选择，默认 2", "主版本已合入该能力，此文件为历史快照"], "supersedes": "integration/namelistget_with_folder.py", "superseded_by": "integration/namelistget_feishu_v9.py"}, {"id": "integration/get_dingding_form.py", "name": "get_dingding_form", "purpose": "在钉钉导出的 PDF 目录中按 num.xlsx 关键词检索并复制命中文件（系列初版）", "stage": "monthend", "tracked": true, "status": "active", "status_note": "核心脚本；钉钉表单检索的基座版本", "interactive": [], "inputs": ["num.xlsx（第一列）", "D:\\test\\tt\\pdf 下的 PDF"], "input_refs": ["dingding_num"], "outputs": ["搜索结果/ PDF 副本 + 根目录 search_results.xlsx"], "output_refs": ["dingding_search_dir", "dingding_result_xlsx"], "deps": ["PyMuPDF", "pandas", "openpyxl"], "core_chain": false, "notes": ["SHA256 去重避免同文件重复复制", "路径 D:\\test\\tt\\pdf 为写死的测试路径", "金额格式化 {:.2f} 后检索"], "supersedes": null, "superseded_by": "202602/飞书/get_dingding_form_keyword_line_1_and_2_with_name_from_line2_with_date_in_result.py"}, {"id": "integration/get_dingding_form_keyword.py", "name": "get_dingding_form_keyword", "purpose": "数字多格式展开检索（x.xx/整数/x.0）并输出带时间戳结果表", "stage": "monthend", "tracked": false, "status": "legacy", "status_note": "mid 版本，后被 202602 增强版收编", "interactive": ["input()"], "inputs": ["num.xlsx", "D:\\test\\tt\\pdf"], "input_refs": ["dingding_num"], "outputs": ["搜索结果/ + search_results_{时间戳}.xlsx"], "output_refs": ["dingding_search_dir", "dingding_result_xlsx"], "deps": ["PyMuPDF", "pandas", "openpyxl"], "core_chain": false, "notes": ["数字三形态展开提高命中率", "SHA256 去重"], "supersedes": "integration/get_dingding_form.py", "superseded_by": "202602/飞书/get_dingding_form_keyword_line_1_and_2_with_name_from_line2_with_date_in_result.py"}, {"id": "integration/get_dingding_form_get_text.py", "name": "get_dingding_form_get_text", "purpose": "修复「末尾 .0 误伤正则」问题的检索版本", "stage": "monthend", "tracked": false, "status": "legacy", "status_note": "对 get_dingding_form.py 的匹配逻辑修复版", "interactive": ["input()"], "inputs": ["num.xlsx", "D:\\test\\tt\\pdf"], "input_refs": ["dingding_num"], "outputs": ["搜索结果/ + search_results_{时间戳}.xlsx"], "output_refs": ["dingding_search_dir", "dingding_result_xlsx"], "deps": ["PyMuPDF", "pandas", "openpyxl"], "core_chain": false, "notes": ["关键词取原值不展开，str() 兜底", "末尾 0 处理不再破坏正则结构"], "supersedes": "integration/get_dingding_form.py", "superseded_by": "202602/飞书/get_dingding_form_keyword_line_1_and_2_with_name_from_line2_with_date_in_result.py"}, {"id": "202602/飞书/get_dingding_form_keyword_line_1_and_2_with_name_from_line2_with_date_in_result.py", "name": "get_dingding_form 增强版（双关键词+日期列）", "purpose": "双列关键词 + 文件名筛选 + 结果表附带申请提交日期，钉钉检索系列最终版", "stage": "monthend", "tracked": false, "status": "active", "status_note": "该系列功能最全版本（202602 快照内）", "interactive": ["input()"], "inputs": ["num.xlsx（关键词/第二关键词/文件名筛选 三列）", "D:\\work\\凭证 下 PDF"], "input_refs": ["dingding_num"], "outputs": ["搜索结果/ + search_results_{时间戳}.xlsx（含第二关键词/文件名筛选/申请提交日期列）"], "output_refs": ["dingding_search_dir", "dingding_result_xlsx"], "deps": ["PyMuPDF", "pandas", "openpyxl"], "core_chain": false, "notes": ["兼容千分位金额与大小写文件名", "时间戳格式串 %m 重复的小瑕疵（不影响检索）"], "supersedes": "integration/get_dingding_form_keyword.py", "superseded_by": null}, {"id": "accounting/compare_vouchers_advanced.py", "name": "compare_vouchers_advanced", "purpose": "深度比对新旧凭证清单：编号变化/内容变化/新增/删除四分类，用 Jaccard 相似度识别「换号但内容一致」的凭证", "stage": "archive", "tracked": true, "status": "core", "status_note": "排序前后凭证编号对照的核心工具（v2.1）", "code_public": true, "interactive": ["tkinter.filedialog"], "inputs": ["修改前凭证清单 xlsx（弹窗）", "修改后凭证清单 xlsx（弹窗）"], "input_refs": ["voucher_list_old", "voucher_list_new"], "outputs": ["凭证比对结果_{时间戳}/凭证比对分析报告(最终版)_{时间戳}.xlsx（摘要/编号内容均修改/仅内容/仅编号/新增/删除）", "源文件复制归档"], "output_refs": ["voucher_compare_dir"], "deps": ["pandas", "openpyxl"], "core_chain": true, "notes": ["凭证内容签名用 frozenset，行序无关", "Jaccard 阈值：>0.5 判「编号+内容修改」、<0.2 判删除+新增", "附单据数不一致时自动标红，方便审计核对面单数量"], "supersedes": "accounting/voucher_comparison.py", "superseded_by": null}, {"id": "accounting/voucher_comparison.py", "name": "voucher_comparison", "purpose": "比对新旧凭证的编号变化/内容变化/新增/删除（简化版，无相似度）", "stage": "archive", "tracked": false, "status": "legacy", "status_note": "advanced 版的前身：仅按「类别|日期」识别换号", "interactive": ["tkinter.filedialog"], "inputs": ["修改前凭证清单", "修改后凭证清单"], "input_refs": ["voucher_list_old", "voucher_list_new"], "outputs": ["凭证比对结果_{时间戳}.xlsx（只修改了编号/内容修改/已删除/新增）"], "output_refs": ["voucher_compare_dir"], "deps": ["pandas", "numpy"], "core_chain": false, "notes": ["无 Jaccard 相似度，换号识别靠「类别|日期」标识", "依赖科目编码+摘要排序后逐行 equals"], "supersedes": "accounting/voucher_comparison_for凭证编号未修改.py", "superseded_by": "accounting/compare_vouchers_advanced.py"}, {"id": "accounting/voucher_comparison_for凭证编号未修改.py", "name": "voucher_comparison（早期版）", "purpose": "凭证比对最早版本（针对编号未修改场景）", "stage": "archive", "tracked": false, "status": "legacy", "status_note": "谱系最上游，被 voucher_comparison.py 迭代", "interactive": ["tkinter.filedialog"], "inputs": ["新旧凭证清单"], "input_refs": ["voucher_list_old", "voucher_list_new"], "outputs": ["凭证比对结果 xlsx"], "output_refs": ["voucher_compare_dir"], "deps": ["pandas"], "core_chain": false, "notes": ["内容指纹逻辑已在早期引入（get_voucher_content_maps）"], "supersedes": null, "superseded_by": "accounting/voucher_comparison.py"}, {"id": "accounting/新旧凭证列表比较及差异输出.py", "name": "新旧凭证列表比较及差异输出", "purpose": "按「除类别/号/日期外的全部列」匹配新旧凭证，输出整组匹配结果与未匹配行并红字标注", "stage": "archive", "tracked": true, "status": "core", "status_note": "另一条比对思路：整行匹配 + 分组完整性校验", "interactive": ["input() 文件路径"], "inputs": ["旧凭证列表 xlsx", "新凭证列表 xlsx（控制台输入路径）"], "input_refs": ["voucher_list_old", "voucher_list_new"], "outputs": ["比较结果_{时间戳}.xlsx（匹配结果/旧证未匹配/新证未匹配/凭证号匹配结果，差异红字）"], "output_refs": ["voucher_compare_dir"], "deps": ["pandas", "openpyxl"], "core_chain": false, "notes": ["按凭证号分组后要求「整组完全匹配」才算匹配", "与 advanced 版互补：不做相似度，做整组一致性"], "supersedes": "archive/新旧凭证列表比较及差异输出_2025-01-24.py", "superseded_by": null}, {"id": "archive/新旧凭证列表比较及差异输出_2025-01-24.py", "name": "新旧凭证列表比较（2025-01-24 归档）", "purpose": "上述脚本的旧快照", "stage": "archive", "tracked": false, "status": "legacy", "status_note": "未匹配行判定疑似错位，新版重写", "interactive": ["input()"], "inputs": ["新旧凭证列表"], "input_refs": ["voucher_list_old", "voucher_list_new"], "outputs": ["比较结果_{时间戳}.xlsx"], "output_refs": ["voucher_compare_dir"], "deps": ["pandas"], "core_chain": false, "notes": ["未匹配行用索引 isin 判断，存在错位风险"], "supersedes": null, "superseded_by": "accounting/新旧凭证列表比较及差异输出.py"}, {"id": "accounting/清单提取拆分好的凭证.py", "name": "清单提取拆分好的凭证", "purpose": "按凭证清单从拆分好的凭证 PDF 池中匹配提取，生成审计资料包与提取报告", "stage": "archive", "tracked": true, "status": "core", "status_note": "审计清单秒级提取的落地工具", "interactive": ["tkinter.filedialog"], "inputs": ["拆分后的凭证 PDF 文件夹（弹窗）", "凭证清单 Excel（弹窗）"], "input_refs": ["split_voucher_dir", "manifest_xlsx"], "outputs": ["凭证提取结果_{时间戳}/（命中 PDF + 提取结果报告.xlsx + 清单副本）"], "output_refs": ["audit_extract_dir"], "deps": ["pandas", "openpyxl"], "core_chain": true, "notes": ["文件名前缀约定：{YYYY-MM}-{凭证类别}-{凭证号zfill(3)}", "命中状态三态：成功提取/未能找到/数据格式错误"], "supersedes": null, "superseded_by": null}, {"id": "accounting/split_vouchers_凭证PDF拆分.py", "name": "split_vouchers_凭证PDF拆分", "purpose": "把整本凭证 PDF 按「年月 + 基础凭证号」逐张拆分为独立 PDF", "stage": "archive", "tracked": true, "status": "core", "status_note": "凭证册拆页，兼容全角/半角冒号与暂记凭证格式", "code_public": true, "interactive": ["tkinter.filedialog"], "inputs": ["整本记账凭证 PDF（弹窗）"], "input_refs": ["voucher_pdf_full"], "outputs": ["{凭证名}_拆分结果/{YYYY-MM}-{基础凭证号}-{N}页.pdf"], "output_refs": ["split_voucher_dir"], "deps": ["pypdf"], "core_chain": true, "notes": ["正则识别「日期:」「凭证号:」含全角冒号", "解析不到标准格式时按暂记凭证模式兜底", "页数写入文件名，纸质核对时可快速点页"], "supersedes": null, "superseded_by": null}, {"id": "accounting/bankStatementSplitterBasedOnJournal.py", "name": "bankStatementSplitterBasedOnJournal", "purpose": "按电子日记账标签把银行流水 PDF 按凭证号逐笔拆分为系列 PDF", "stage": "archive", "tracked": true, "status": "core", "status_note": "银行流水审计链路：一张流水对应一张凭证", "code_public": true, "interactive": [], "inputs": ["项目根目录唯一的银行流水 PDF", "唯一含「日记账」的 xlsx（A 列标签，行 5 起）"], "input_refs": ["bank_pdf", "journal_xlsx"], "outputs": ["分割完成/{标签}.pdf"], "output_refs": ["bank_split_dir"], "deps": ["PyPDF2", "openpyxl"], "core_chain": true, "notes": ["强约束：根目录必须「恰好一个」PDF 与「恰好一个」日记账 xlsx，否则退出", "行数 vs 页数差 >2 时判定文件错配直接退出（防御性设计）", "标签即新文件名（通常是凭证号）"], "supersedes": "archive/InputPathDrivenPDFJournalSplitter_2025-01-20.py", "superseded_by": null}, {"id": "accounting/InputPathDrivenPDFJournalSplitter.py", "name": "InputPathDrivenPDFJournalSplitter", "purpose": "同上但改为控制台输入路径驱动的变体", "stage": "archive", "tracked": false, "status": "broken", "status_note": "首行混入路径字符串导致语法错误，当前无法运行", "interactive": ["input()"], "inputs": ["PDF 路径、日记账 xlsx 路径（控制台输入）"], "input_refs": ["bank_pdf", "journal_xlsx"], "outputs": ["分割完成/{标签}.pdf"], "output_refs": ["bank_split_dir"], "deps": ["PyPDF2", "openpyxl"], "core_chain": false, "notes": ["第 1 行内容为 D:\\work\\... 路径 + import 语句粘连", "逻辑与 bankStatementSplitterBasedOnJournal 相同，仅入口不同"], "supersedes": null, "superseded_by": "accounting/bankStatementSplitterBasedOnJournal.py"}, {"id": "archive/InputPathDrivenPDFJournalSplitter_2025-01-20.py", "name": "InputPathDrivenPDFJournalSplitter（2025-01 归档）", "purpose": "路径驱动拆分器旧快照（可运行版本）", "stage": "archive", "tracked": false, "status": "legacy", "status_note": "归档版本，当前版语法损坏后的参照物", "interactive": ["input()"], "inputs": ["PDF 路径、日记账 xlsx 路径"], "input_refs": ["bank_pdf", "journal_xlsx"], "outputs": ["分割完成/{标签}.pdf"], "output_refs": ["bank_split_dir"], "deps": ["PyPDF2", "openpyxl"], "core_chain": false, "notes": ["逻辑与当前版一致"], "supersedes": null, "superseded_by": "accounting/InputPathDrivenPDFJournalSplitter.py"}, {"id": "accounting/文字pdf对比脚本.py", "name": "文字pdf对比脚本", "purpose": "两份 PDF 逐页提取文本并比对差异，生成差异报告", "stage": "archive", "tracked": false, "status": "active", "status_note": "审计场景：凭证/单据修改前后的文本留痕比对", "interactive": ["tkinter.filedialog"], "inputs": ["旧 PDF", "新 PDF（弹窗各选一次）"], "input_refs": ["voucher_pdf_full"], "outputs": ["PDF文本比对结果_{时间戳}/文本比对结果报告.xlsx（逐页：无差异/有差异+unified diff）"], "output_refs": ["pdf_text_compare_dir"], "deps": ["pdfplumber", "pandas", "openpyxl"], "core_chain": false, "notes": ["空白规范化后先等值比较，不同才输出 unified_diff", "报告页级差异，附完整 diff 文本"], "supersedes": null, "superseded_by": null}, {"id": "archive/invoice_2024-12-13.py", "name": "invoice（2024-12-13 归档）", "purpose": "发票匹配最早归档版", "stage": "archive", "tracked": false, "status": "legacy", "status_note": "带序号列与住宿/餐饮/汽油分类的老实现", "interactive": [], "inputs": ["发票 PDF + 全量发票查询导出结果.xlsx"], "input_refs": ["invoice_pdf_pool", "invoice_master"], "outputs": ["提取结果/processed_invoices.xlsx + 成功/失败副本"], "output_refs": ["processed_invoices", "extract_result_dir"], "deps": ["openpyxl", "pdfplumber"], "core_chain": false, "notes": ["新版简化列结构并改从项目根目录扫描"], "supersedes": null, "superseded_by": "accounting/invoice.py"}, {"id": "accounting/利润表生成.py", "name": "利润表生成", "purpose": "扫描根目录全部利润表 xlsx，按「利润表项目」外连接合并为多月对比表并补行次", "stage": "aux", "tracked": true, "status": "core", "status_note": "畅捷通月度报表合并的展示脚本（README 推荐可运行示例）", "interactive": [], "inputs": ["项目根目录 包含「利润表」的 *.xlsx（C3 为月份）"], "input_refs": ["profit_xlsx"], "outputs": ["合并利润表_带行次_{时间戳}.xlsx（行次+项目+各月列）"], "output_refs": ["merged_profit"], "deps": ["pandas", "openpyxl"], "core_chain": true, "notes": ["行次随机取一个样本文件（各月行次一致时无影响）", "outer merge 容忍项目名称增减", "日志写入 merge_log.log"], "supersedes": null, "superseded_by": null}, {"id": "accounting/合并现金流量表.py", "name": "合并现金流量表", "purpose": "按文件名中的年月排序，合并多月现金流量表，先解除合并单元格再提取数据", "stage": "aux", "tracked": true, "status": "core", "status_note": "正则支持「现金流量表/现金流表 + YYYYMM」多格式命名", "interactive": [], "inputs": ["项目根目录 匹配「现金流*(\\d{4})(\\d{2}).xlsx」的月度表"], "input_refs": ["cashflow_xlsx"], "outputs": ["现金流量表合并_{时间戳}.xlsx（行次+项目+各月列，已设列宽）"], "output_refs": ["merged_cashflow"], "deps": ["pandas", "openpyxl", "xlsxwriter"], "core_chain": true, "notes": ["先 openpyxl 解除合并单元格并填充值，另存临时文件再 pandas 提取", "依赖 xlsxwriter（requirements.txt 未列出，属依赖清单缺口）", "日志写入 cashflow_merge.log"], "supersedes": null, "superseded_by": null}, {"id": "accounting/analyze_duplicates.py", "name": "analyze_duplicates", "purpose": "仓库自检工具：扫描全部 .py，按核心名分组 + difflib 相似度，输出保留/审查/删除建议报告", "stage": "aux", "tracked": false, "status": "active", "status_note": "本次功能地图整理的重要辅助：版本谱系的自动发现器", "interactive": [], "inputs": ["项目根目录全部 .py 源码（排除 .pyc 等）"], "input_refs": [], "outputs": ["文件整理分析报告.md（重复组相似度 + 处理建议，只读不改文件）"], "output_refs": ["report_md"], "deps": ["difflib（标准库）"], "core_chain": false, "notes": ["能解析备份时间戳/副本标记/版本号后缀三类命名噪声", "相似度 ≥95% 建议删除、85%+ 建议审查、其余保留", "明确声明不删移任何文件（安全设计）"], "supersedes": null, "superseded_by": null}, {"id": "accounting/IntercompanyOutstandingCleanupTool.py", "name": "IntercompanyOutstandingCleanupTool", "purpose": "关联方往来清理：余额表+明细账匹配未清项，并可检索对应审批单 PDF", "stage": "aux", "tracked": true, "status": "wip", "status_note": "半成品：process_detail_sheet 中 some_condition_met 未定义，调用即 NameError", "interactive": ["input()"], "inputs": ["column_info.xlsx（列映射配置，需人工填写）", "全部科目余额表 xlsx", "科目辅助明细账 xlsx", "可选：凭证 PDF 目录"], "input_refs": ["intercompany_infos"], "outputs": ["处理结果.xlsx（工作表1/2）", "新建xlsx文件.xlsx（检索关键词）", "搜索结果/ + search_results_{时间戳}.xlsx"], "output_refs": ["intercompany_result"], "deps": ["pandas", "openpyxl", "PyMuPDF"], "core_chain": false, "notes": ["some_condition_met 为占位变量，未实现判断逻辑（README 已标注开发中）", "零配置列映射思路：column_info.xlsx 声明「文件-列名-列号」", "金额检索兼容千分位逗号格式"], "supersedes": null, "superseded_by": null}, {"id": "accounting/invoice_data_from_pdf.py", "name": "invoice_data_from_pdf", "purpose": "扫描当前目录 PDF，提取审批单金额关键词与日期，生成 processed_files.xlsx（早期版）", "stage": "aux", "tracked": false, "status": "legacy", "status_note": "运行依赖 CWD（os.walk('.')），后被 processedfilesinfoalltxt 取代", "interactive": [], "inputs": ["当前工作目录及子目录的 PDF（文件名含「审批/提交」）"], "input_refs": ["approval_pdf_renamed"], "outputs": ["processed_files.xlsx（文件名称+审批编号+各金额关键词列）"], "output_refs": ["processed_files_xlsx"], "deps": ["openpyxl", "pdfplumber"], "core_chain": false, "notes": ["水印名拆成单字逐个剔除后再抽取", "关键词：最终优惠价（元）/本单总计/合同总金额/此次报销费用总计金额/金额"], "supersedes": null, "superseded_by": "file_processing/processedfilesinfoalltxt.py"}, {"id": "file_processing/processedfilesinfoall.py", "name": "processedfilesinfoall", "purpose": "从审批单 PDF 批量提取金额字段并汇总为 processed_files.xlsx", "stage": "aux", "tracked": false, "status": "legacy", "status_note": "invoice_data_from_pdf 的工程化版本（非 CWD 依赖）", "interactive": [], "inputs": ["项目根目录及子目录中文件名含「审批/提交」的 PDF"], "input_refs": ["approval_pdf_renamed"], "outputs": ["processed_files.xlsx"], "output_refs": ["processed_files_xlsx"], "deps": ["openpyxl", "pdfplumber"], "core_chain": false, "notes": ["水印逐字删除后去空格换行再匹配", "金额关键词覆盖合同/报销/优惠价等"], "supersedes": "accounting/invoice_data_from_pdf.py", "superseded_by": "file_processing/processedfilesinfoalltxt.py"}, {"id": "file_processing/processedfilesinfoalltxt.py", "name": "processedfilesinfoalltxt", "purpose": "审批单 PDF 金额+日期提取，输出 Excel 并逐票落 TXT 文本（增强版）", "stage": "aux", "tracked": false, "status": "wip", "status_note": "开发中（未完成）；重复关键词自动扩列避免覆盖", "interactive": [], "inputs": ["项目根目录及子目录中文件名含「审批/提交」的 PDF"], "input_refs": ["approval_pdf_renamed"], "outputs": ["processed_files.xlsx + 每份 PDF 同名 .txt（项目根目录）"], "output_refs": ["processed_files_xlsx"], "deps": ["openpyxl", "pdfplumber", "locale"], "core_chain": false, "notes": ["重复关键词自动新增「关键词_2」列", "从「水印名」后提取 YYYY-MM-DD HH:MM:SS 日期"], "supersedes": "file_processing/processedfilesinfoall.py", "superseded_by": null}, {"id": "accounting/business_trip_report.py", "name": "business_trip_report", "purpose": "出差明细/统计双表生成的示例脚本（张三李四王五假数据）", "stage": "aux", "tracked": false, "status": "active", "status_note": "教程/示例性质，非生产链路", "interactive": [], "inputs": ["无（脚本内假数据）"], "input_refs": [], "outputs": ["员工出差统计表.xlsx（明细记录+天数统计）"], "output_refs": ["trip_report_xlsx"], "deps": ["pandas"], "core_chain": false, "notes": ["自动计算出差天数与占比", "生成在 CWD"], "supersedes": null, "superseded_by": null}, {"id": "file_processing/133_extract_files.py", "name": "133_extract_files", "purpose": "把子文件夹内文件全部上移到根目录，重名自动 _1/_2 递增并清理空目录", "stage": "aux", "tracked": false, "status": "active", "status_note": "月度目录扁平化整理工具", "interactive": [], "inputs": ["项目根目录所有子文件夹内文件"], "input_refs": [], "outputs": ["原地移动后的文件；空目录被删除"], "output_refs": [], "deps": [], "core_chain": false, "notes": ["会扫描包括 .git 在内的所有子目录（危险面较大，需在专用工作目录运行）"], "supersedes": null, "superseded_by": null}, {"id": "file_processing/PDFtoImage.py", "name": "PDFtoImage", "purpose": "根目录 PDF 逐页转 PNG（不可批量打印时的替代方案）", "stage": "aux", "tracked": false, "status": "legacy", "status_note": "与 pdf_processor_to_image.py 功能重叠，后者为 JPG 版", "interactive": [], "inputs": ["项目根目录 *.pdf"], "input_refs": ["voucher_pdf_full"], "outputs": ["PDF 同名子文件夹/{pdf名}_{页码}.png"], "output_refs": ["pdf_images"], "deps": ["PyMuPDF"], "core_chain": false, "notes": ["按 PDF 名建子文件夹", "页码从 1 开始"], "supersedes": null, "superseded_by": "file_processing/pdf_processor_to_image.py"}, {"id": "file_processing/pdf_processor_to_image.py", "name": "pdf_processor_to_image", "purpose": "根目录 PDF 逐页转 JPG（dpi=600，打印用）", "stage": "aux", "tracked": false, "status": "active", "status_note": "常用小工具（已收录工具清单）", "interactive": [], "inputs": ["项目根目录 *.pdf"], "input_refs": ["voucher_pdf_full"], "outputs": ["PDF 同目录 {名}_{页码}.jpg"], "output_refs": ["pdf_images"], "deps": ["PyMuPDF"], "core_chain": false, "notes": ["注释写 300 DPI，实际 600 DPI（注释与实现不一致）", "输出名含绝对路径导致 output_folder 参数失效，JPG 落在 PDF 旁边"], "supersedes": "file_processing/PDFtoImage.py", "superseded_by": null}, {"id": "file_processing/pdf_renamer.py", "name": "pdf_renamer", "purpose": "去掉 PDF 文件名尾部 (1)(2) 并处理重名冲突", "stage": "aux", "tracked": false, "status": "active", "status_note": "下载重名清理小工具", "interactive": [], "inputs": ["项目根目录 *.pdf"], "input_refs": [], "outputs": ["重命名后的文件；与现有文件冲突时移入 重复文件/"], "output_refs": ["duplicate_action"], "deps": [], "core_chain": false, "notes": ["正则只匹配半角括号结尾", "仅处理根目录一层"], "supersedes": null, "superseded_by": null}, {"id": "file_processing/delete_duplicate_files.py", "name": "delete_duplicate_files", "purpose": "SHA256 分块哈希查重，重复文件保留最旧、其余移入回收站（v1）", "stage": "aux", "tracked": false, "status": "legacy", "status_note": "保留策略在 v2 修正为「保留最新」", "interactive": [], "inputs": ["项目根目录及子目录全部文件"], "input_refs": [], "outputs": ["重复副本被 send2trash 移入回收站"], "output_refs": ["duplicate_action"], "deps": ["send2trash"], "core_chain": false, "notes": ["4096 字节分块计算哈希，避免大文件吃内存", "实际保留最旧文件（v2 注释承认此策略不理想）"], "supersedes": null, "superseded_by": "file_processing/delete_duplicate_files_v2.py"}, {"id": "file_processing/delete_duplicate_files_v2.py", "name": "delete_duplicate_files_v2", "purpose": "SHA256 查重，每组保留修改时间最新者（v2 修正版）", "stage": "aux", "tracked": false, "status": "active", "status_note": "v1 的保留策略修正：reverse=True 保留最新", "interactive": [], "inputs": ["项目根目录及子目录全部文件"], "input_refs": [], "outputs": ["较旧的重复副本移入回收站"], "output_refs": ["duplicate_action"], "deps": ["send2trash"], "core_chain": false, "notes": ["相对 v1 唯一改动：排序 reverse=True"], "supersedes": "file_processing/delete_duplicate_files.py", "superseded_by": null}, {"id": "file_processing/merge_tables.py", "name": "merge_tables", "purpose": "把根目录全部 xlsx 纵向合并为一张表", "stage": "aux", "tracked": false, "status": "active", "status_note": "通用合并小工具", "interactive": [], "inputs": ["项目根目录全部 .xlsx"], "input_refs": [], "outputs": ["combined_data.xlsx"], "output_refs": ["combined_xlsx"], "deps": ["pandas"], "core_chain": false, "notes": ["重跑会把 combined_data.xlsx 自身再次并入（已知缺陷）", "按列位置堆叠，不校验表头"], "supersedes": null, "superseded_by": null}, {"id": "file_processing/new_folder_with_subfolders.py", "name": "new_folder_with_subfolders", "purpose": "按配置批量创建「本月发票处理」等月度工作目录与占位文件", "stage": "aux", "tracked": false, "status": "active", "status_note": "月度目录初始化（幂等）", "interactive": [], "inputs": ["脚本内 folder_config 配置"], "input_refs": [], "outputs": ["本月发票处理/（含 流水/农行/支付宝/农行分割/浙商/携程、飞书、报销附件、零碎的资料）+ 两个占位文件"], "output_refs": ["monthly_workdir"], "deps": [], "core_chain": false, "notes": ["占位文件是空文件（不是真 Excel）", "makedirs exist_ok 幂等，已存在不覆盖"], "supersedes": null, "superseded_by": null}, {"id": "file_processing/批量新建月份文件夹.py", "name": "批量新建月份文件夹", "purpose": "在根目录批量创建 202401~202412 十二个月份文件夹", "stage": "aux", "tracked": false, "status": "dead", "status_note": "年份硬编码 2024，跨年即失效", "interactive": [], "inputs": [], "input_refs": [], "outputs": ["202401~202412 文件夹"], "output_refs": [], "deps": [], "core_chain": false, "notes": ["年份与命名规则全部写死，仅一次性用途"], "supersedes": null, "superseded_by": "file_processing/new_folder_with_subfolders.py"}, {"id": "file_processing/fileinfonum.py", "name": "fileinfonum", "purpose": "扫描运行目录文件名并提取其中数字写入 Excel", "stage": "aux", "tracked": false, "status": "wip", "status_note": "Jupyter 导出片段（残留 # In[1] 单元格标记），依赖 CWD", "interactive": [], "inputs": ["os.listdir('.') 当前工作目录"], "input_refs": [], "outputs": ["file_info.xlsx（文件名 + 提取数字）"], "output_refs": [], "deps": ["openpyxl"], "core_chain": false, "notes": ["未用 __file__ 定位目录，双击运行扫描目录可能不对"], "supersedes": null, "superseded_by": null}, {"id": "file_processing/getpdf_v1.py", "name": "getpdf_v1", "purpose": "按 invoice.xlsx 清单从发票目录匹配复制 PDF（子串匹配原型）", "stage": "aux", "tracked": false, "status": "legacy", "status_note": "三个 D 盘绝对路径硬编码", "interactive": [], "inputs": ["D:\\work\\凭证\\电子发票\\提取使用\\invoice.xlsx", "D:\\work\\凭证\\电子发票"], "input_refs": ["invoices_numlist"], "outputs": ["匹配 PDF 复制到 提取使用/"], "output_refs": [], "deps": ["pandas"], "core_chain": false, "notes": ["文件名数字子串匹配", "本机无 D:\\work，需改造才能运行"], "supersedes": null, "superseded_by": "file_processing/getpdf_v2.py"}, {"id": "file_processing/getpdf_v2.py", "name": "getpdf_v2", "purpose": "同上，row[0]→row.iloc[0] 的 pandas 修正版", "stage": "aux", "tracked": false, "status": "legacy", "status_note": "与 v1 唯一差异是 iloc 用法", "interactive": [], "inputs": ["D:\\work\\凭证\\电子发票\\提取使用\\invoice.xlsx"], "input_refs": ["invoices_numlist"], "outputs": ["匹配 PDF 复制到 提取使用/"], "output_refs": [], "deps": ["pandas"], "core_chain": false, "notes": ["三个 D 盘路径同样硬编码"], "supersedes": "file_processing/getpdf_v1.py", "superseded_by": null}, {"id": "utils/onlyforcxy.py", "name": "onlyforcxy", "purpose": "按文件夹递归合并 PDF 为「{文件夹名}_合并版.pdf」", "stage": "aux", "tracked": false, "status": "active", "status_note": "凭证打印合并工具（目标路径硬编码，含真实业务路径）", "interactive": [], "inputs": ["目标目录及各子目录 PDF（代码内硬编码路径）"], "input_refs": [], "outputs": ["各文件夹内 {文件夹名}_合并版.pdf（按文件名排序）"], "output_refs": [], "deps": ["pypdf"], "core_chain": false, "notes": ["硬编码 D:\\work\\凭证\\<内部目录>\\...（因此被 gitignore 排除）"], "supersedes": null, "superseded_by": null}, {"id": "utils/organize_project.py", "name": "organize_project", "purpose": "一次性项目整理器：把根目录散落文件归位到 accounting/file_processing/integration/utils/data/archive/docs", "stage": "aux", "tracked": false, "status": "dead", "status_note": "迁移任务已完成并自我归档，历史价值", "interactive": [], "inputs": ["根目录散落文件（含 v1/v2 重命名映射表）"], "input_refs": [], "outputs": ["标准目录结构"], "output_refs": [], "deps": [], "core_chain": false, "notes": ["本次目录结构的缔造者", "含新老文件名映射，可作为版本谱系的旁证"], "supersedes": null, "superseded_by": null}, {"id": "utils/new.py", "name": "new（Selenium 驱动测试）", "purpose": "Edge 驱动连通性测试片段（自动下载驱动并打开百度）", "stage": "experiment", "tracked": false, "status": "experiment", "status_note": "README 明确标注 Selenium 实验性未接入生产", "interactive": ["selenium"], "inputs": [], "input_refs": [], "outputs": ["控制台打印网页标题"], "output_refs": [], "deps": ["selenium", "webdriver-manager"], "core_chain": false, "notes": ["生产链路无 Selenium 依赖，仅为网页自动化前瞻"], "supersedes": null, "superseded_by": null}, {"id": "utils/pythonrc.py", "name": "pythonrc", "purpose": "VS Code Python REPL 提示符集成配置", "stage": "aux", "tracked": false, "status": "active", "status_note": "IDE 环境配置文件，非业务脚本", "interactive": [], "inputs": [], "input_refs": [], "outputs": [], "output_refs": [], "deps": [], "core_chain": false, "notes": ["Windows 下仅打印操作提示，不设置 PS1"], "supersedes": null, "superseded_by": null}, {"id": "integration/web_file_downloader_v1.py", "name": "web_file_downloader_v1", "purpose": "读取剪贴板中的链接，正则批量下载网页文件", "stage": "experiment", "tracked": false, "status": "legacy", "status_note": "初版（requests），被 Selenium 版替代", "interactive": ["pyperclip"], "inputs": ["剪贴板 http(s) 链接"], "input_refs": [], "outputs": ["按 Content-Disposition / URL 末段命名的文件（CWD）"], "output_refs": [], "deps": ["requests", "pyperclip"], "core_chain": false, "notes": ["无去重逻辑"], "supersedes": null, "superseded_by": "integration/web_file_downloader_v2.py"}, {"id": "integration/web_file_downloader_v2.py", "name": "web_file_downloader_v2", "purpose": "Selenium 打开网页并点击「下载」元素抓取文件", "stage": "experiment", "tracked": false, "status": "wip", "status_note": "实验性，禁用 SSL 校验仅限测试；未接入生产", "interactive": ["input()", "selenium"], "inputs": ["手工输入的 https URL"], "input_refs": [], "outputs": ["Edge 下载目录 ~/Downloads/Secure_Downloads 下文件"], "output_refs": ["web_downloaded_files"], "deps": ["selenium", "webdriver-manager"], "core_chain": false, "notes": ["XPath 匹配文本「下载」的元素逐个点击", "未来方向：替代畅捷通/银行网银人工下载"], "supersedes": "integration/web_file_downloader_v1.py", "superseded_by": null}, {"id": "脱敏汇总.py", "name": "脱敏汇总", "purpose": "data/ 下四张业务表首行数据脱敏并汇总输出对照明细", "stage": "aux", "tracked": false, "status": "active", "status_note": "新版：适配 data/ 目录结构", "interactive": [], "inputs": ["data/审批数据总表.xlsx 等四表"], "input_refs": ["demo_data"], "outputs": ["data/4表脱敏汇总结果.xlsx（汇总总览+对照明细）"], "output_refs": ["desensitized_summary"], "deps": ["openpyxl"], "core_chain": false, "notes": ["姓氏白名单避免把部门名误脱敏", "公开仓库数据脱敏流程的上游工具"], "supersedes": "accounting/脱敏汇总.py", "superseded_by": null}, {"id": "accounting/脱敏汇总.py", "name": "脱敏汇总（旧版）", "purpose": "四表脱敏汇总旧实现（未适配 data/ 目录）", "stage": "aux", "tracked": false, "status": "legacy", "status_note": "企业关键词「部/中心」易误脱敏；数据已移入 data/ 后失效", "interactive": [], "inputs": ["项目根目录下四个 xlsx（旧位置）"], "input_refs": ["demo_data"], "outputs": ["项目根目录/4表脱敏汇总结果.xlsx"], "output_refs": ["desensitized_summary"], "deps": ["openpyxl"], "core_chain": false, "notes": ["被根目录新版取代"], "supersedes": null, "superseded_by": "脱敏汇总.py"}, {"id": "docs/diagrams/render_mermaid.py", "name": "render_mermaid", "purpose": "读取 docs/diagrams/*.mmd，调用 mermaid.ink 渲染并下载 PNG", "stage": "aux", "tracked": true, "status": "core", "status_note": "文档基建：README 全部架构图的生成器", "interactive": [], "inputs": ["docs/diagrams/*.mmd"], "input_refs": [], "outputs": ["同名 .png（zlib+pako+base64url 编码调用在线渲染）"], "output_refs": [], "deps": [], "core_chain": false, "notes": ["纯标准库实现（json/zlib/base64/urllib）", "依赖 mermaid.ink 在线服务，请求间隔 3 秒防限流"], "supersedes": null, "superseded_by": null}, {"id": "202602/飞书/pdf_processor_for_approval.py", "name": "pdf_processor_for_approval（202602 快照）", "purpose": "审批单重命名器的历史快照（脚本目录级扫描）", "stage": "monthend", "tracked": false, "status": "legacy", "status_note": "与 file_processing 版差异在路径解析与关键字表（含「（淘宝等平台购买专用）采购申请」）", "interactive": [], "inputs": ["脚本所在文件夹下审批单 PDF"], "input_refs": ["approval_pdf_raw"], "outputs": ["{关键字}-{申请编号}-{单据编号}-{申请人}-{审批状态}-{序号}.pdf"], "output_refs": ["approval_pdf_renamed"], "deps": ["PyMuPDF", "pdfplumber"], "core_chain": false, "notes": ["主版本已合入相关适配"], "supersedes": null, "superseded_by": "file_processing/pdf_processor_for_approval.py"}], "lineages": [{"family": "namelistget（月底资料包匹配）", "desc": "从 D 盘全盘搜索 → 文件夹整包复制 → 飞书资料包一条龙（复制+关联+合并+对账表）", "members": ["integration/namelistget.py", "integration/namelistget_with_folder.py", "202602/飞书/namelistget_current file_forfeishu_v9.0增加来源可选参数.py", "integration/namelistget_feishu_v9.py"], "current": "integration/namelistget_feishu_v9.py"}, {"family": "钉钉表单检索（get_dingding_form）", "desc": "关键词检索 PDF → 数字多格式展开 → 修复末尾 .0 → 双关键词+文件名筛选+日期列（202602 终版）", "members": ["integration/get_dingding_form.py", "integration/get_dingding_form_get_text.py", "integration/get_dingding_form_keyword.py", "202602/飞书/get_dingding_form_keyword_line_1_and_2_with_name_from_line2_with_date_in_result.py"], "current": "202602/飞书/get_dingding_form_keyword_line_1_and_2_with_name_from_line2_with_date_in_result.py"}, {"family": "发票核验（invoice）", "desc": "归档版 → 根目录台账版（invoice.py）→ 提取结果目录增强版（134：序号+5类关键词）", "members": ["archive/invoice_2024-12-13.py", "accounting/invoice.py", "file_processing/invoicetofoldertxtclose_v1.py", "file_processing/134_invoicetofoldertxtclose.py"], "current": "file_processing/134_invoicetofoldertxtclose.py"}, {"family": "凭证比对（voucher comparison）", "desc": "早期版 → 编号变化识别版 → Jaccard 深度比对 v2.1；另有整组匹配思路的新旧凭证列表比较", "members": ["accounting/voucher_comparison_for凭证编号未修改.py", "accounting/voucher_comparison.py", "accounting/compare_vouchers_advanced.py", "archive/新旧凭证列表比较及差异输出_2025-01-24.py", "accounting/新旧凭证列表比较及差异输出.py"], "current": "accounting/compare_vouchers_advanced.py + accounting/新旧凭证列表比较及差异输出.py（两条路线并存）"}, {"family": "银行流水拆分（journal splitter）", "desc": "归档快照 → 路径驱动版（语法损坏）→ 根目录唯一文件约束版", "members": ["archive/InputPathDrivenPDFJournalSplitter_2025-01-20.py", "accounting/InputPathDrivenPDFJournalSplitter.py", "accounting/bankStatementSplitterBasedOnJournal.py"], "current": "accounting/bankStatementSplitterBasedOnJournal.py"}, {"family": "审批单金额提取（processed files info）", "desc": "CWD 依赖版 → 工程化版 → TXT+日期增强版（README 标注未完成）", "members": ["accounting/invoice_data_from_pdf.py", "file_processing/processedfilesinfoall.py", "file_processing/processedfilesinfoalltxt.py"], "current": "file_processing/processedfilesinfoalltxt.py"}, {"family": "OFD 转换（ofd → pdf）", "desc": "easyofd 早期版（Py2 语法残留）→ PyMuPDF 全量转换版", "members": ["file_processing/ofdtopdf.py", "file_processing/convert_all.py"], "current": "file_processing/convert_all.py"}, {"family": "审批单重命名（pdf processor）", "desc": "202602 快照 → file_processing 适配版（路径解析与关键字表差异）", "members": ["202602/飞书/pdf_processor_for_approval.py", "file_processing/pdf_processor_for_approval.py"], "current": "file_processing/pdf_processor_for_approval.py"}, {"family": "PDF 转图片", "desc": "PNG 子目录版 → JPG 直出打印版", "members": ["file_processing/PDFtoImage.py", "file_processing/pdf_processor_to_image.py"], "current": "file_processing/pdf_processor_to_image.py"}, {"family": "文件查重（delete duplicates）", "desc": "保留最旧版 → 保留最新修正版", "members": ["file_processing/delete_duplicate_files.py", "file_processing/delete_duplicate_files_v2.py"], "current": "file_processing/delete_duplicate_files_v2.py"}, {"family": "Excel 清单匹配复制（getpdf）", "desc": "子串匹配原型 → pandas iloc 修正版（均依赖 D 盘硬编码路径）", "members": ["file_processing/getpdf_v1.py", "file_processing/getpdf_v2.py"], "current": "file_processing/getpdf_v2.py"}, {"family": "网页文件下载（web file downloader）", "desc": "剪贴板链接 requests 版 → Selenium 点击版（实验性，未接入生产）", "members": ["integration/web_file_downloader_v1.py", "integration/web_file_downloader_v2.py"], "current": "integration/web_file_downloader_v2.py"}, {"family": "脱敏汇总", "desc": "根目录旧版 → data/ 目录适配新版", "members": ["accounting/脱敏汇总.py", "脱敏汇总.py"], "current": "脱敏汇总.py"}, {"family": "月度目录初始化", "desc": "2024 年份硬编码版（废弃）→ 配置化目录+占位文件版", "members": ["file_processing/批量新建月份文件夹.py", "file_processing/new_folder_with_subfolders.py"], "current": "file_processing/new_folder_with_subfolders.py"}], "kpis": [{"name": "单张凭证处理", "before": "约 8 分钟", "after": "约 30 秒", "improve": "-94%", "before_w": 100, "after_w": 8, "basis": "人工链路含 6~8 个动作（打开审批单 / 抄摘要 / 查科目 / 录分录 / 核对 / 提交）合计约 8 分钟；自动化后人工只剩核对草稿"}, {"name": "发票核对与分类", "before": "约 3 小时/批次", "after": "约 10 分钟/批次", "improve": "-94%", "before_w": 100, "after_w": 8, "basis": "按 120 张/批次估算：人工逐张打开比对约 90 秒/张；自动化后人工只处理未匹配项（样例 5 张中 1 张未匹配）"}, {"name": "月结周期", "before": "3 个工作日", "after": "4 小时", "improve": "-94%", "before_w": 100, "after_w": 9, "basis": "汇总项：由凭证录入、发票核对、审计提取等单项改善叠加而来"}, {"name": "审计凭证提取", "before": "约 2 天", "after": "约 5 分钟", "improve": "-99%", "before_w": 100, "after_w": 5, "basis": "口径：按清单程序化提取 vs 人工翻找纸质凭证"}, {"name": "PDF 拆分重命名", "before": "约 1 天", "after": "约 2 分钟", "improve": "-99%", "before_w": 100, "after_w": 4, "basis": "口径：批量脚本处理 vs 手工逐份打开另存"}], "kpi_note": "以上为业务口径的估算与推算，未经独立复核，不构成实测基准；前两项给出拆解过程，其余为口径说明。", "replays": {"approval_amounts": {"slug": "approval_amounts", "title": "审批单金额/日期提取", "script": "file_processing/processedfilesinfoalltxt.py", "stage": "aux", "fidelity": "real", "mode": "plain", "note": "README 标注未完成；可验证关键词扩列与日期提取逻辑", "inputs": ["月底/审批单/*.pdf ×5"], "started_at": "2026-09-15 22:36:25", "dialogs": [], "outputs": [{"path": "processed_files.xlsx", "bytes": 4990, "kind": "xlsx", "preview": {"sheets": ["File Data"], "preview": {"File Data": [["文件名称", "审批编号"], ["processedfilesinfoalltxt.py", ""], ["审批单01.pdf", "01"], ["审批单02.pdf", "02"], ["审批单03.pdf", "03"], ["审批单04.pdf", "04"], ["审批单05.pdf", "05"]]}}}, {"path": "审批单01.txt", "bytes": 177, "kind": "text", "preview": "差旅报销单申请编号:202603010001单据编号KZCLBX202603010001申请人张三（研发中心）审批状态已通过费用明细：交通费860.00元/住宿费1180.00元"}, {"path": "审批单02.txt", "bytes": 177, "kind": "text", "preview": "差旅报销单申请编号:202603020002单据编号KZCLBX202603020002申请人张三（研发中心）审批状态已通过费用明细：交通费860.00元/住宿费1180.00元"}, {"path": "审批单03.txt", "bytes": 180, "kind": "text", "preview": "费用报销单申请编号:202603030003单据编号KZFYBX202603030003申请人李四（销售管理部）审批状态审批中费用明细：交通费860.00元/住宿费1180.00元"}, {"path": "审批单04.txt", "bytes": 174, "kind": "text", "preview": "采购申请单申请编号:202603040004单据编号KZCGSQ202603040004申请人王五（行政部）审批状态已通过费用明细：交通费860.00元/住宿费1180.00元"}, {"path": "审批单05.txt", "bytes": 171, "kind": "text", "preview": "付款申请申请编号:202603050005单据编号KZFKSQ202603050005申请人赵六（财务部）审批状态已驳回费用明细：交通费860.00元/住宿费1180.00元"}], "log": "正在处理文件: processedfilesinfoalltxt.py\n正在处理文件: 审批单01.pdf\ntxt转换结果已保存至文件：<工作区>\\approval_amounts审批单01.txt\n在文件 审批单01.pdf 中未提取到关键词 最终优惠价（元） 对应的有效内容\n在文件 审批单01.pdf 中未提取到关键词 本单总计 对应的有效内容\n在文件 审批单01.pdf 中未提取到关键词 合同总金额 对应的有效内容\n在文件 审批单01.pdf 中未提取到关键词 此次报销费用总计金额 对应的有效内容\n在文件 审批单01.pdf 中未提取到关键词 金额 对应的有效内容\n在文件 审批单01.pdf 中未提取到关键词 单价 对应的有效内容\n在文件 审批单01.pdf 中未提取到关键词 总价 对应的有效内容\n正在处理文件: 审批单02.pdf\ntxt转换结果已保存至文件：<工作区>\\approval_amounts审批单02.txt\n在文件 审批单02.pdf 中未提取到关键词 最终优惠价（元） 对应的有效内容\n在文件 审批单02.pdf 中未提取到关键词 本单总计 对应的有效内容\n在文件 审批单02.pdf 中未提取到关键词 合同总金额 对应的有效内容\n在文件 审批单02.pdf 中未提取到关键词 此次报销费用总计金额 对应的有效内容\n在文件 审批单02.pdf 中未提取到关键词 金额 对应的有效内容\n在文件 审批单02.pdf 中未提取到关键词 单价 对应的有效内容\n在文件 审批单02.pdf 中未提取到关键词 总价 对应的有效内容\n正在处理文件: 审批单03.pdf\ntxt转换结果已保存至文件：<工作区>\\approval_amounts审批单03.txt\n在文件 审批单03.pdf 中未提取到关键词 最终优惠价（元） 对应的有效内容\n在文件 审批单03.pdf 中未提取到关键词 本单总计 对应的有效内容\n在文件 审批单03.pdf 中未提取到关键词 合同总金额 对应的有效内容\n在文件 审批单03.pdf 中未提取到关键词 此次报销费用总计金额 对应的有效内容\n在文件 审批单03.pdf 中未提取到关键词 金额 对应的有效内容\n在文件 审批单03.pdf 中未提取到关键词 单价 对应的有效内容\n在文件 审批单03.pdf 中未提取到关键词 总价 对应的有效内容\n正在处理文件: 审批单04.pdf\ntxt转换结果已保存至文件：<工作区>\\approval_amounts审批单04.txt\n在文件 审批单04.pdf 中未提取到关键词 最终优惠价（元） 对应的有效内容\n在文件 审批单04.pdf 中未提取到关键词 本单总计 对应的有效内容\n在文件 审批单04.pdf 中未提取到关键词 合同总金额 对应的有效内容\n在文件 审批单04.pdf 中未提取到关键词 此次报销费用总计金额 对应的有效内容\n在文件 审批单04.pdf 中未提取到关键词 金额 对应的有效内容\n在文件 审批单04.pdf 中未提取到关键词 单价 对应的有效内容\n在文件 审批单04.pdf 中未提取到关键词 总价 对应的有效内容\n正在处理文件: 审批单05.pdf\ntxt转换结果已保存至文件：<工作区>\\approval_amounts审批单05.txt\n在文件 审批单05.pdf 中未提取到关键词 最终优惠价（元） 对应的有效内容\n在文件 审批单05.pdf 中未提取到关键词 本单总计 对应的有效内容\n在文件 审批单05.pdf 中未提取到关键词 合同总金额 对应的有效内容\n在文件 审批单05.pdf 中未提取到关键词 此次报销费用总计金额 对应的有效内容\n在文件 审批单05.pdf 中未提取到关键词 金额 对应的有效内容\n在文件 审批单05.pdf 中未提取到关键词 单价 对应的有效内容\n在文件 审批单05.pdf 中未提取到关键词 总价 对应的有效内容\n数据处理完成，结果已保存至文件：<工作区>\\approval_amounts\\processed_files.xlsx\n排序成功\n", "exit_code": 0, "duration_s": 0.95}, "approval_rename": {"slug": "approval_rename", "title": "审批单标准化重命名", "script": "file_processing/pdf_processor_for_approval.py", "stage": "monthend", "fidelity": "real", "mode": "plain", "note": "输出 单据类型-申请编号-单据编号-申请人-审批状态-序号 标准命名", "inputs": ["月底/审批单/*.pdf ×5（无固定文件名）"], "started_at": "2026-09-15 22:36:15", "dialogs": [], "outputs": [{"path": "付款申请-202603050005-KZFKSQ202603050005-赵六-已驳回-1.pdf", "bytes": 134807, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "付款申请 申请编号:202603050005 单据编号 KZFKSQ202603050005 申请人 赵六（财务部） 审批状态 已驳回 费用明细：交通费 860.00 元 / 住宿费 1180.00 元"}}, {"path": "差旅报销单-202603010001-KZCLBX202603010001-张三-已通过-1.pdf", "bytes": 135026, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "差旅报销单 申请编号:202603010001 单据编号 KZCLBX202603010001 申请人 张三（研发中心） 审批状态 已通过 费用明细：交通费 860.00 元 / 住宿费 1180.00 元"}}, {"path": "差旅报销单-202603020002-KZCLBX202603020002-张三-已通过-2.pdf", "bytes": 135025, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "差旅报销单 申请编号:202603020002 单据编号 KZCLBX202603020002 申请人 张三（研发中心） 审批状态 已通过 费用明细：交通费 860.00 元 / 住宿费 1180.00 元"}}, {"path": "费用报销单-202603030003-KZFYBX202603030003-李四-审批中-1.pdf", "bytes": 134541, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "费用报销单 申请编号:202603030003 单据编号 KZFYBX202603030003 申请人 李四（销售管理部） 审批状态 审批中 费用明细：交通费 860.00 元 / 住宿费 1180.00 元"}}, {"path": "采购申请单-202603040004-KZCGSQ202603040004-王五-已通过-1.pdf", "bytes": 134490, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "采购申请单 申请编号:202603040004 单据编号 KZCGSQ202603040004 申请人 王五（行政部） 审批状态 已通过 费用明细：交通费 860.00 元 / 住宿费 1180.00 元"}}], "log": "当前脚本所在文件夹: <工作区>\\approval_rename\n正在处理文件: <工作区>\\approval_rename\\审批单01.pdf\n提取的申请人相关字符 a: 张三\n提取的申请人相关字符 a: 张三\n提取的申请编号编码 b: 202603010001\n提取的单据编号编码 f: KZCLBX202603010001\n提取的审批状态相关字符 c: 已通过\n提取的关键字 d: 差旅报销单\n文件已重命名为: <工作区>\\approval_rename\\差旅报销单-202603010001-KZCLBX202603010001-张三-已通过-1.pdf\n正在处理文件: <工作区>\\approval_rename\\审批单02.pdf\n提取的申请人相关字符 a: 张三\n提取的申请人相关字符 a: 张三\n提取的申请编号编码 b: 202603020002\n提取的单据编号编码 f: KZCLBX202603020002\n提取的审批状态相关字符 c: 已通过\n提取的关键字 d: 差旅报销单\n文件已重命名为: <工作区>\\approval_rename\\差旅报销单-202603020002-KZCLBX202603020002-张三-已通过-2.pdf\n正在处理文件: <工作区>\\approval_rename\\审批单03.pdf\n提取的申请人相关字符 a: 李四\n提取的申请人相关字符 a: 李四\n提取的申请编号编码 b: 202603030003\n提取的单据编号编码 f: KZFYBX202603030003\n提取的审批状态相关字符 c: 审批中\n提取的关键字 d: 费用报销单\n文件已重命名为: <工作区>\\approval_rename\\费用报销单-202603030003-KZFYBX202603030003-李四-审批中-1.pdf\n正在处理文件: <工作区>\\approval_rename\\审批单04.pdf\n提取的申请人相关字符 a: 王五\n提取的申请人相关字符 a: 王五\n提取的申请编号编码 b: 202603040004\n提取的单据编号编码 f: KZCGSQ202603040004\n提取的审批状态相关字符 c: 已通过\n提取的关键字 d: 采购申请单\n文件已重命名为: <工作区>\\approval_rename\\采购申请单-202603040004-KZCGSQ202603040004-王五-已通过-1.pdf\n正在处理文件: <工作区>\\approval_rename\\审批单05.pdf\n提取的申请人相关字符 a: 赵六\n提取的申请人相关字符 a: 赵六\n提取的申请编号编码 b: 202603050005\n提取的单据编号编码 f: KZFKSQ202603050005\n提取的审批状态相关字符 c: 已驳回\n提取的关键字 d: 付款申请\n文件已重命名为: <工作区>\\approval_rename\\付款申请-202603050005-KZFKSQ202603050005-赵六-已驳回-1.pdf\n", "exit_code": 0, "duration_s": 0.71}, "audit_extract": {"slug": "audit_extract", "title": "审计清单提取", "script": "accounting/清单提取拆分好的凭证.py", "stage": "archive", "fidelity": "real", "mode": "harness", "note": "文件名前缀 {YYYY-MM}-{凭证类别}-{凭证号zfill(3)} 匹配，输出提取报告", "inputs": ["归档/凭证清单.xlsx", "voucher_split 的拆分产物"], "started_at": "2026-09-15 22:36:18", "dialogs": [{"type": "dialog_dir", "title": "请选择PDF凭证所在的【源文件夹】", "value": "<工作区>\\audit_extract/in/拆分好的凭证"}, {"type": "dialog_file", "title": "请选择凭证【清单Excel文件】", "value": "<工作区>\\audit_extract/in/凭证清单.xlsx"}, {"type": "showinfo", "args": ["操作完成", "凭证提取完成！\n\n- 共找到 2 个PDF文件并已复制。\n- 详细报告已生成。\n\n所有结果均已保存至:\n<工作区>\\audit_extract\\in\\拆分好的凭证\\凭证提取结果_20260915_223619"]}, {"type": "startfile", "path": "<工作区>\\audit_extract\\in\\拆分好的凭证\\凭证提取结果_20260915_223619"}], "outputs": [{"path": "in/拆分好的凭证/凭证提取结果_20260915_223619/2026-01-记-001-2页.pdf", "bytes": 138972, "kind": "pdf", "preview": {"pages": 2, "first_page_text": "记账凭证 日期: 2026-01-31 凭证号: 记-001-1/2 摘要：报销差旅费 借：管理费用-差旅费 1,000.00 贷：库存现金 1,000.00"}}, {"path": "in/拆分好的凭证/凭证提取结果_20260915_223619/2026-01-记-002-1页.pdf", "bytes": 138063, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "记账凭证 日期: 2026-01-31 凭证号: 记-002-1/1 摘要：采购办公用品 借：管理费用-办公费 500.00 贷：银行存款 500.00"}}, {"path": "in/拆分好的凭证/凭证提取结果_20260915_223619/凭证清单.xlsx", "bytes": 5086, "kind": "xlsx", "preview": {"sheets": ["Sheet1"], "preview": {"Sheet1": [["凭证类别", "凭证号", "凭证日期", "附单据数", "摘要"], ["记", 1, "2026-01-31", 3, "报销差旅费"], ["记", 2, "2026-01-31", 2, "采购办公用品"]]}}}, {"path": "in/拆分好的凭证/凭证提取结果_20260915_223619/提取结果报告.xlsx", "bytes": 5208, "kind": "xlsx", "preview": {"sheets": ["Sheet1"], "preview": {"Sheet1": [["凭证类别", "凭证号", "凭证日期", "附单据数", "摘要", "提取状态", "提取到的文件名"], ["记", 1, "2026-01-31", 3, "报销差旅费", "成功提取", "2026-01-记-001-2页.pdf"], ["记", 2, "2026-01-31", 2, "采购办公用品", "成功提取", "2026-01-记-002-1页.pdf"]]}}}], "log": "================================================================\n[harness] 执行: <工作区>\\audit_extract\\accounting\\清单提取拆分好的凭证.py\n[harness] 工作目录: <工作区>\\audit_extract\n================================================================\n[dialog] 目录选择 -> <工作区>\\audit_extract/in/拆分好的凭证\n[dialog] 文件选择 -> <工作区>\\audit_extract/in/凭证清单.xlsx\n结果文件夹已创建: <工作区>\\audit_extract\\in\\拆分好的凭证\\凭证提取结果_20260915_223619\n正在扫描源文件夹中的PDF文件...\n共找到 2 个PDF文件。\n正在根据清单匹配凭证文件...\n\n准备复制 2 个已找到的PDF文件...\n已将原始清单文件复制到结果文件夹。\n提取结果报告已生成: <工作区>\\audit_extract\\in\\拆分好的凭证\\凭证提取结果_20260915_223619\\提取结果报告.xlsx\n[showinfo] 操作完成 | 凭证提取完成！\n\n- 共找到 2 个PDF文件并已复制。\n- 详细报告已生成。\n\n所有结果均已保存至:\n<工作区>\\audit_extract\\in\\拆分好的凭证\\凭证提取结果_20260915_223619\n\n操作完成，正在打开结果文件夹...\n[startfile] 已拦截打开 -> <工作区>\\audit_extract\\in\\拆分好的凭证\\凭证提取结果_20260915_223619\n================================================================\n[harness] 结束，退出码 = 0\n================================================================\n", "exit_code": 0, "duration_s": 1.05}, "bank_split": {"slug": "bank_split", "title": "银行流水按凭证拆分", "script": "accounting/bankStatementSplitterBasedOnJournal.py", "stage": "archive", "fidelity": "real", "mode": "plain", "note": "根目录必须恰好 1 个 PDF + 1 个日记账；行数与页数差异 >2 直接拒绝", "inputs": ["归档/银行流水-202601.pdf", "归档/日记账202601.xlsx"], "started_at": "2026-09-15 22:36:21", "dialogs": [], "outputs": [{"path": "分割完成/记-001.pdf", "bytes": 134109, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "浙商银行电子回单 回单编号：2000260101 交易日期：2026-01-31 金额：1000.00 对方户名：示例供应商有限公司 摘要：记-001"}}, {"path": "分割完成/记-002.pdf", "bytes": 134110, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "浙商银行电子回单 回单编号：2000260102 交易日期：2026-01-31 金额：2000.00 对方户名：示例供应商有限公司 摘要：记-002"}}, {"path": "分割完成/记-003.pdf", "bytes": 134109, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "浙商银行电子回单 回单编号：2000260103 交易日期：2026-01-31 金额：3000.00 对方户名：示例供应商有限公司 摘要：记-003"}}], "log": "处理完成，生成的文件已保存到 '分割完成' 文件夹中。\n", "exit_code": 0, "duration_s": 0.6}, "cashflow_merge": {"slug": "cashflow_merge", "title": "现金流量表多月合并", "script": "accounting/合并现金流量表.py", "stage": "aux", "fidelity": "real", "mode": "plain", "note": "先解除合并单元格再提取，输出列宽已设置的合并表", "inputs": ["辅助/现金流量表202601.xlsx", "辅助/现金流量表202602.xlsx"], "started_at": "2026-09-15 22:36:24", "dialogs": [], "outputs": [{"path": "cashflow_merge.log", "bytes": 148, "kind": "text", "preview": "2026-09-15 22:36:25,558 - INFO: �ɹ������ļ�: <工作区>\\cashflow_merge\\�ֽ��������ϲ�_20260915_2236.xlsx\n"}, {"path": "现金流量表合并_20260915_2236.xlsx", "bytes": 5892, "kind": "xlsx", "preview": {"sheets": ["Sheet1"], "preview": {"Sheet1": [["行次", "项目", "2026年01月", "2026年02月"], [8, "三、筹资活动产生的现金流量净额", 0, 0], [7, "二、投资活动产生的现金流量净额", -96000, -88000], [9, "四、现金及现金等价物净增加额", 422000, 489000], [6, "经营活动产生的现金流量净额", 518000, 577000], [3, "经营活动现金流入小计", 1360000, 1495000], [5, "经营活动现金流出小计", 842000, 918000], [4, "购买商品、接受劳务支付的现金", 842000, 918000], [2, "销售商品、提供劳务收到的现金", 1360000, 1495000]]}}}], "log": "合并完成！输出文件：\n<工作区>\\cashflow_merge\\现金流量表合并_20260915_2236.xlsx\n", "exit_code": 0, "duration_s": 0.96}, "clipboard_summary": {"slug": "clipboard_summary", "title": "飞书审批摘要（剪贴板）", "script": "integration/get_filename_from_feishu.py", "stage": "daily", "fidelity": "simulated", "mode": "simulated", "note": "依赖人工在飞书页面全选复制 + GUI 热键，无法无头执行；本条目为按代码逻辑生成的示意回放", "inputs": ["剪贴板：飞书审批详情页文本（人工复制）"], "started_at": "2026-09-15 22:36:27", "dialogs": [], "outputs": [], "log": "[监控] 剪贴板轮询中 ... (800ms)\n[命中] 剪贴板内容变更，长度 1832 > 50，含关键词：审批详情 / 单据编号 / 申请人\n[解析] 锚点「审批详情」向前回溯 1000 / 向后 2000 字符\n[提取] 单据类型 = 差旅报销单\n[提取] 申请编号 = 202603010001\n[提取] 单据编号 = KZCLBX202603010001\n[提取] 申请人   = 张三（部门词表命中：研发中心）\n--------------------------------------------------\n标准凭证摘要（已复制到剪贴板）：\n差旅报销单-202603010001-KZCLBX202603010001-张三\n--------------------------------------------------\n[提示] 粘贴到畅捷通凭证草稿箱摘要栏即可完成录入", "exit_code": null, "duration_s": null}, "intercompany": {"slug": "intercompany", "title": "关联方往来清理（半成品）", "script": "accounting/IntercompanyOutstandingCleanupTool.py", "stage": "aux", "fidelity": "simulated", "mode": "simulated", "note": "some_condition_met 未定义、依赖人工填写 column_info.xlsx，README 标注开发中；日志为示意", "inputs": ["全部科目余额表.xlsx", "科目辅助明细账.xlsx", "column_info.xlsx（列映射配置）"], "started_at": "2026-09-15 22:36:27", "dialogs": [], "outputs": [], "log": "已在 D:\\your_data\\column_info.xlsx 创建 column_info.xlsx，请填写文件名称/列名/列号...\n请按回车键继续 ...\n请输入全部科目余额表xlsx文件的路径：<已输入>\n请输入科目辅助明细账xlsx文件的路径：<已输入>\n[读取] 余额表：header=3，按 column_info 定位「期末余额」列\n[读取] 明细账：定位 摘要/借方/贷方/项目/客户/供应商/部门/员工 列\n[中断] 处理到「科目余额是否为0」判定时命中占位逻辑 some_condition_met\n[说明] 该工具开发中：列映射零配置思路已跑通，判定逻辑待补全", "exit_code": null, "duration_s": null}, "invoice_category": {"slug": "invoice_category", "title": "发票分类汇总", "script": "accounting/summary_by_invoice_category.py", "stage": "daily", "fidelity": "real", "mode": "plain", "note": "读取第 24 列类别与第 16 列金额，输出分类汇总 + 合计", "inputs": ["日常/processed_invoices.xlsx（中间产物快照）"], "started_at": "2026-09-15 22:36:12", "dialogs": [], "outputs": [{"path": "summary_by_invoice_category.xlsx", "bytes": 5030, "kind": "xlsx", "preview": {"sheets": ["Summary by Invoice Category"], "preview": {"Summary by Invoice Category": [["发票类别", "价税合计金额汇总"], ["住宿服务", 1180], ["餐饮服务", 256], ["汽油", 300], ["通行费", 15], ["合计金额", 1751]]}}}], "log": "按发票类别分类汇总的结果已保存至路径：<工作区>\\invoice_category\\summary_by_invoice_category.xlsx\n", "exit_code": 0, "duration_s": 0.5}, "invoice_enhanced": {"slug": "invoice_enhanced", "title": "发票核验（增强版 134）", "script": "file_processing/134_invoicetofoldertxtclose.py", "stage": "daily", "fidelity": "real", "mode": "plain", "note": "最新版：序号 + 5 类关键词 + 提取结果目录结构", "inputs": ["日常/发票/*.pdf ×5", "日常/全量发票查询导出结果.xlsx"], "started_at": "2026-09-15 22:36:13", "dialogs": [], "outputs": [{"path": "提取结果/processed_invoices.xlsx", "bytes": 5788, "kind": "xlsx", "preview": {"sheets": ["Invoice Data"], "preview": {"Invoice Data": [["序号", "文件名称", "发票号码（提取）", "发票代码（提取）", "序号", "发票号码", "数电票号码", "数电发票号码", "开票日期", "购买方名称", "销售方名称", "项目名称"], [1, "<工作区>\\invoice_enhanced\\dzfp_26332000000012345601_示例酒店_20260205103000.pdf", "26332000000012345601", "", 1, "", "26332000000012345601", "26332000000012345601", "2026-02-05", "杭州示例科技有限公司", "杭州示例酒店管理有限公司", "*住宿服务*住宿费"], [2, "<工作区>\\invoice_enhanced\\dzfp_26332000000012345602_示例餐饮_20260206120000.pdf", "26332000000012345602", "", 2, "", "26332000000012345602", "26332000000012345602", "2026-02-06", "杭州示例科技有限公司", "杭州样例餐饮有限公司", "*餐饮服务*工作餐"], [3, "<工作区>\\invoice_enhanced\\dzfp_26332000000012345603_示例加油_20260207180000.pdf", "26332000000012345603", "", 3, "", "26332000000012345603", "26332000000012345603", "2026-02-07", "杭州示例科技有限公司", "示例石油销售有限公司", "*汽油*车用汽油"], [4, "<工作区>\\invoice_enhanced\\发票_12345678_通行费.pdf", "12345678", "87654321", 4, "12345678", "", "", "2026-02-08", "杭州示例科技有限公司", "示例高速公路管理有限公司", "通行费"]]}}}, {"path": "提取结果/unprocessed_files.xlsx", "bytes": 5108, "kind": "xlsx", "preview": {"sheets": ["Unprocessed Files"], "preview": {"Unprocessed Files": [["序号", "未处理文件完整地址"], [4, "<工作区>\\invoice_enhanced\\dzfp_99999999999999999999_未匹配_20260208090000.pdf"], [5, "<工作区>\\invoice_enhanced\\全量发票查询导出结果.xlsx"], [6, "<工作区>\\invoice_enhanced\\file_processing\\134_invoicetofoldertxtclose.py"]]}}}, {"path": "提取结果/提取失败/4_dzfp_99999999999999999999_未匹配_20260208090000.pdf", "bytes": 137321, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "电子发票（普通发票） 发票号码：99999999999999999999 开票日期：2026-02-08 购买方名称：杭州示例科技有限公司 销售方名称：示例未知供应商 *办公用品*打印纸 1 88.00 10.12 价税合计（小写）￥88.00"}}, {"path": "提取结果/提取失败/5_全量发票查询导出结果.xlsx", "bytes": 5699, "kind": "xlsx", "preview": {"sheets": ["发票基础信息"], "preview": {"发票基础信息": [["序号", "发票号码", "数电票号码", "数电发票号码", "开票日期", "购买方名称", "销售方名称", "项目名称", "税率", "税额", "不含税金额", "价税合计金额"], [1, "", "26332000000012345601", "26332000000012345601", "2026-02-05", "杭州示例科技有限公司", "杭州示例酒店管理有限公司", "*住宿服务*住宿费", "6%", 66.79, 1113.21, 1180], [2, "", "26332000000012345602", "26332000000012345602", "2026-02-06", "杭州示例科技有限公司", "杭州样例餐饮有限公司", "*餐饮服务*工作餐", "6%", 14.49, 241.51, 256], [3, "", "26332000000012345603", "26332000000012345603", "2026-02-07", "杭州示例科技有限公司", "示例石油销售有限公司", "*汽油*车用汽油", "6%", 34.51, 265.49, 300], [4, "12345678", "", "", "2026-02-08", "杭州示例科技有限公司", "示例高速公路管理有限公司", "通行费", "3%", 0.44, 14.56, 15]]}}}, {"path": "提取结果/提取失败/6_134_invoicetofoldertxtclose.py", "bytes": 17240, "kind": "other", "preview": null}, {"path": "提取结果/提取成功/1_dzfp_26332000000012345601_示例酒店_20260205103000.pdf", "bytes": 137652, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "电子发票（普通发票） 发票号码：26332000000012345601 开票日期：2026-02-05 购买方名称：杭州示例科技有限公司 销售方名称：杭州示例酒店管理有限公司 *住宿服务*住宿费 1 1180.00 66.79 价税合计（小写）￥1180.00"}}, {"path": "提取结果/提取成功/2_dzfp_26332000000012345602_示例餐饮_20260206120000.pdf", "bytes": 137074, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "电子发票（普通发票） 发票号码：26332000000012345602 开票日期：2026-02-06 购买方名称：杭州示例科技有限公司 销售方名称：杭州样例餐饮有限公司 *餐饮服务*工作餐 1 256.00 14.49 价税合计（小写）￥256.00"}}, {"path": "提取结果/提取成功/3_dzfp_26332000000012345603_示例加油_20260207180000.pdf", "bytes": 136145, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "电子发票（普通发票） 发票号码：26332000000012345603 开票日期：2026-02-07 购买方名称：杭州示例科技有限公司 销售方名称：示例石油销售有限公司 *汽油*车用汽油 1 300.00 34.51 价税合计（小写）￥300.00"}}, {"path": "提取结果/提取成功/4_发票_12345678_通行费.pdf", "bytes": 137515, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "电子发票（普通发票） 发票代码:87654321 发票号码：12345678 开票日期：2026-02-08 购买方名称：杭州示例科技有限公司 销售方名称：示例高速公路管理有限公司 通行费 1 15.00 0.44 价税合计（小写）￥15.00"}}], "log": "脚本开始运行。\n已扫描到以下文件：\n<工作区>\\invoice_enhanced\\dzfp_26332000000012345601_示例酒店_20260205103000.pdf\n<工作区>\\invoice_enhanced\\dzfp_26332000000012345602_示例餐饮_20260206120000.pdf\n<工作区>\\invoice_enhanced\\dzfp_26332000000012345603_示例加油_20260207180000.pdf\n<工作区>\\invoice_enhanced\\dzfp_99999999999999999999_未匹配_20260208090000.pdf\n<工作区>\\invoice_enhanced\\全量发票查询导出结果.xlsx\n<工作区>\\invoice_enhanced\\发票_12345678_通行费.pdf\n<工作区>\\invoice_enhanced\\file_processing\\134_invoicetofoldertxtclose.py\n正在加载文件 <工作区>\\invoice_enhanced\\全量发票查询导出结果.xlsx...\n共找到 5 个PDF文件，开始处理...\n正在处理文件 dzfp_26332000000012345601_示例酒店_20260205103000.pdf...\n提取到发票号码：26332000000012345601\n发票号码为20位，正在在全量发票查询导出结果中查找对应信息...\n找到匹配信息，开始填充数据...\n在文件 dzfp_26332000000012345601_示例酒店_20260205103000.pdf 中找到关键词：住宿服务\n正在处理文件 dzfp_26332000000012345602_示例餐饮_20260206120000.pdf...\n提取到发票号码：26332000000012345602\n发票号码为20位，正在在全量发票查询导出结果中查找对应信息...\n找到匹配信息，开始填充数据...\n在文件 dzfp_26332000000012345602_示例餐饮_20260206120000.pdf 中找到关键词：餐饮服务\n正在处理文件 dzfp_26332000000012345603_示例加油_20260207180000.pdf...\n提取到发票号码：26332000000012345603\n发票号码为20位，正在在全量发票查询导出结果中查找对应信息...\n找到匹配信息，开始填充数据...\n在文件 dzfp_26332000000012345603_示例加油_20260207180000.pdf 中找到关键词：汽油\n正在处理文件 dzfp_99999999999999999999_未匹配_20260208090000.pdf...\n提取到发票号码：99999999999999999999\n发票号码为20位，正在在全量发票查询导出结果中查找对应信息...\n文件 <工作区>\\invoice_enhanced\\dzfp_99999999999999999999_未匹配_20260208090000.pdf 未在发票基础信息中匹配到对应内容，归到未处理文件信息里面。\n正在处理文件 发票_12345678_通行费.pdf...\n提取到发票号码：12345678\n发票号码为8位，开始提取发票代码...\n提取到发票代码：87654321\n正在在全量发票查询导出结果中查找对应信息...\n找到匹配信息，开始填充数据...\n在文件 发票_12345678_通行费.pdf 中找到关键词：通行费\n发票信息相关的Excel文件已保存至路径：<工作区>\\invoice_enhanced\\提取结果\\processed_invoices.xlsx\n未处理文件信息相关的Excel文件已保存至路径：<工作区>\\invoice_enhanced\\提取结果\\unprocessed_files.xlsx\n数据处理完成，相关文件已分类放置，脚本运行结束。\n", "exit_code": 0, "duration_s": 0.99}, "invoice_match": {"slug": "invoice_match", "title": "发票核验（主链路）", "script": "accounting/invoice.py", "stage": "daily", "fidelity": "real", "mode": "plain", "note": "输出 processed_invoices.xlsx 供分类汇总消费；未匹配发票进入提取失败目录", "inputs": ["日常/发票/*.pdf ×5", "日常/全量发票查询导出结果.xlsx"], "started_at": "2026-09-15 22:36:11", "dialogs": [], "outputs": [{"path": "dzfp_26332000000012345601_示例酒店_20260205103000.txt", "bytes": 277, "kind": "text", "preview": "电子发票（普通发票）\n发票号码：26332000000012345601\n开票日期：2026-02-05\n购买方名称：杭州示例科技有限公司\n销售方名称：杭州示例酒店管理有限公司\n*住宿服务*住宿费 1 1180.00 66.79\n价税合计（小写）￥1180.00"}, {"path": "dzfp_26332000000012345602_示例餐饮_20260206120000.txt", "bytes": 269, "kind": "text", "preview": "电子发票（普通发票）\n发票号码：26332000000012345602\n开票日期：2026-02-06\n购买方名称：杭州示例科技有限公司\n销售方名称：杭州样例餐饮有限公司\n*餐饮服务*工作餐 1 256.00 14.49\n价税合计（小写）￥256.00"}, {"path": "dzfp_26332000000012345603_示例加油_20260207180000.txt", "bytes": 266, "kind": "text", "preview": "电子发票（普通发票）\n发票号码：26332000000012345603\n开票日期：2026-02-07\n购买方名称：杭州示例科技有限公司\n销售方名称：示例石油销售有限公司\n*汽油*车用汽油 1 300.00 34.51\n价税合计（小写）￥300.00"}, {"path": "dzfp_99999999999999999999_未匹配_20260208090000.txt", "bytes": 258, "kind": "text", "preview": "电子发票（普通发票）\n发票号码：99999999999999999999\n开票日期：2026-02-08\n购买方名称：杭州示例科技有限公司\n销售方名称：示例未知供应商\n*办公用品*打印纸 1 88.00 10.12\n价税合计（小写）￥88.00"}, {"path": "processed_invoices.xlsx", "bytes": 5725, "kind": "xlsx", "preview": {"sheets": ["Invoice Data"], "preview": {"Invoice Data": [["文件名称", "发票号码（提取）", "发票代码（提取）", "序号", "发票号码", "数电票号码", "数电发票号码", "开票日期", "购买方名称", "销售方名称", "项目名称", "税率"], ["<工作区>\\invoice_match\\dzfp_26332000000012345601_示例酒店_20260205103000.pdf", "26332000000012345601", "", 1, "", "26332000000012345601", "26332000000012345601", "2026-02-05", "杭州示例科技有限公司", "杭州示例酒店管理有限公司", "*住宿服务*住宿费", "6%"], ["<工作区>\\invoice_match\\dzfp_26332000000012345602_示例餐饮_20260206120000.pdf", "26332000000012345602", "", 2, "", "26332000000012345602", "26332000000012345602", "2026-02-06", "杭州示例科技有限公司", "杭州样例餐饮有限公司", "*餐饮服务*工作餐", "6%"], ["<工作区>\\invoice_match\\dzfp_26332000000012345603_示例加油_20260207180000.pdf", "26332000000012345603", "", 3, "", "26332000000012345603", "26332000000012345603", "2026-02-07", "杭州示例科技有限公司", "示例石油销售有限公司", "*汽油*车用汽油", "6%"], ["<工作区>\\invoice_match\\发票_12345678_通行费.pdf", "12345678", "87654321", 4, "12345678", "", "", "2026-02-08", "杭州示例科技有限公司", "示例高速公路管理有限公司", "通行费", "3%"]]}}}, {"path": "unprocessed_files.xlsx", "bytes": 5048, "kind": "xlsx", "preview": {"sheets": ["Unprocessed Files"], "preview": {"Unprocessed Files": [["未处理文件完整地址"], ["<工作区>\\invoice_match\\dzfp_99999999999999999999_未匹配_20260208090000.pdf"], ["<工作区>\\invoice_match\\全量发票查询导出结果.xlsx"], ["<工作区>\\invoice_match\\accounting\\invoice.py"]]}}}, {"path": "发票_12345678_通行费.txt", "bytes": 269, "kind": "text", "preview": "电子发票（普通发票）\n发票代码:87654321\n发票号码：12345678\n开票日期：2026-02-08\n购买方名称：杭州示例科技有限公司\n销售方名称：示例高速公路管理有限公司\n通行费 1 15.00 0.44\n价税合计（小写）￥15.00"}, {"path": "提取结果/提取失败/dzfp_99999999999999999999_未匹配_20260208090000.pdf", "bytes": 137321, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "电子发票（普通发票） 发票号码：99999999999999999999 开票日期：2026-02-08 购买方名称：杭州示例科技有限公司 销售方名称：示例未知供应商 *办公用品*打印纸 1 88.00 10.12 价税合计（小写）￥88.00"}}, {"path": "提取结果/提取失败/invoice.py", "bytes": 12958, "kind": "other", "preview": null}, {"path": "提取结果/提取失败/全量发票查询导出结果.xlsx", "bytes": 5699, "kind": "xlsx", "preview": {"sheets": ["发票基础信息"], "preview": {"发票基础信息": [["序号", "发票号码", "数电票号码", "数电发票号码", "开票日期", "购买方名称", "销售方名称", "项目名称", "税率", "税额", "不含税金额", "价税合计金额"], [1, "", "26332000000012345601", "26332000000012345601", "2026-02-05", "杭州示例科技有限公司", "杭州示例酒店管理有限公司", "*住宿服务*住宿费", "6%", 66.79, 1113.21, 1180], [2, "", "26332000000012345602", "26332000000012345602", "2026-02-06", "杭州示例科技有限公司", "杭州样例餐饮有限公司", "*餐饮服务*工作餐", "6%", 14.49, 241.51, 256], [3, "", "26332000000012345603", "26332000000012345603", "2026-02-07", "杭州示例科技有限公司", "示例石油销售有限公司", "*汽油*车用汽油", "6%", 34.51, 265.49, 300], [4, "12345678", "", "", "2026-02-08", "杭州示例科技有限公司", "示例高速公路管理有限公司", "通行费", "3%", 0.44, 14.56, 15]]}}}, {"path": "提取结果/提取成功/dzfp_26332000000012345601_示例酒店_20260205103000.pdf", "bytes": 137652, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "电子发票（普通发票） 发票号码：26332000000012345601 开票日期：2026-02-05 购买方名称：杭州示例科技有限公司 销售方名称：杭州示例酒店管理有限公司 *住宿服务*住宿费 1 1180.00 66.79 价税合计（小写）￥1180.00"}}, {"path": "提取结果/提取成功/dzfp_26332000000012345602_示例餐饮_20260206120000.pdf", "bytes": 137074, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "电子发票（普通发票） 发票号码：26332000000012345602 开票日期：2026-02-06 购买方名称：杭州示例科技有限公司 销售方名称：杭州样例餐饮有限公司 *餐饮服务*工作餐 1 256.00 14.49 价税合计（小写）￥256.00"}}, {"path": "提取结果/提取成功/dzfp_26332000000012345603_示例加油_20260207180000.pdf", "bytes": 136145, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "电子发票（普通发票） 发票号码：26332000000012345603 开票日期：2026-02-07 购买方名称：杭州示例科技有限公司 销售方名称：示例石油销售有限公司 *汽油*车用汽油 1 300.00 34.51 价税合计（小写）￥300.00"}}, {"path": "提取结果/提取成功/发票_12345678_通行费.pdf", "bytes": 137515, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "电子发票（普通发票） 发票代码:87654321 发票号码：12345678 开票日期：2026-02-08 购买方名称：杭州示例科技有限公司 销售方名称：示例高速公路管理有限公司 通行费 1 15.00 0.44 价税合计（小写）￥15.00"}}], "log": "脚本开始运行。\n已扫描到以下文件：\n<工作区>\\invoice_match\\dzfp_26332000000012345601_示例酒店_20260205103000.pdf\n<工作区>\\invoice_match\\dzfp_26332000000012345602_示例餐饮_20260206120000.pdf\n<工作区>\\invoice_match\\dzfp_26332000000012345603_示例加油_20260207180000.pdf\n<工作区>\\invoice_match\\dzfp_99999999999999999999_未匹配_20260208090000.pdf\n<工作区>\\invoice_match\\全量发票查询导出结果.xlsx\n<工作区>\\invoice_match\\发票_12345678_通行费.pdf\n<工作区>\\invoice_match\\accounting\\invoice.py\n正在加载文件 <工作区>\\invoice_match\\全量发票查询导出结果.xlsx...\n共找到 5 个PDF文件，开始处理...\n正在处理文件 dzfp_26332000000012345601_示例酒店_20260205103000.pdf...\n已将文件 dzfp_26332000000012345601_示例酒店_20260205103000.pdf 的提取文本保存为 <工作区>\\invoice_match\\dzfp_26332000000012345601_示例酒店_20260205103000.txt\n提取到发票号码：26332000000012345601\n发票号码为20位，正在在全量发票查询导出结果中查找对应信息...\n找到匹配信息，开始填充数据...\n正在处理文件 dzfp_26332000000012345602_示例餐饮_20260206120000.pdf...\n已将文件 dzfp_26332000000012345602_示例餐饮_20260206120000.pdf 的提取文本保存为 <工作区>\\invoice_match\\dzfp_26332000000012345602_示例餐饮_20260206120000.txt\n提取到发票号码：26332000000012345602\n发票号码为20位，正在在全量发票查询导出结果中查找对应信息...\n找到匹配信息，开始填充数据...\n正在处理文件 dzfp_26332000000012345603_示例加油_20260207180000.pdf...\n已将文件 dzfp_26332000000012345603_示例加油_20260207180000.pdf 的提取文本保存为 <工作区>\\invoice_match\\dzfp_26332000000012345603_示例加油_20260207180000.txt\n提取到发票号码：26332000000012345603\n发票号码为20位，正在在全量发票查询导出结果中查找对应信息...\n找到匹配信息，开始填充数据...\n正在处理文件 dzfp_99999999999999999999_未匹配_20260208090000.pdf...\n已将文件 dzfp_99999999999999999999_未匹配_20260208090000.pdf 的提取文本保存为 <工作区>\\invoice_match\\dzfp_99999999999999999999_未匹配_20260208090000.txt\n提取到发票号码：99999999999999999999\n发票号码为20位，正在在全量发票查询导出结果中查找对应信息...\n文件 <工作区>\\invoice_match\\dzfp_99999999999999999999_未匹配_20260208090000.pdf 未在发票基础信息中匹配到对应内容，归到未处理文件信息里面。\n正在处理文件 发票_12345678_通行费.pdf...\n已将文件 发票_12345678_通行费.pdf 的提取文本保存为 <工作区>\\invoice_match\\发票_12345678_通行费.txt\n提取到发票号码：12345678\n发票号码为8位，开始提取发票代码...\n提取到发票代码：87654321\n正在在全量发票查询导出结果中查找对应信息...\n找到匹配信息，开始填充数据...\n数据处理完成，正在保存发票信息相关的Excel文件...\n发票信息相关的Excel文件已保存至路径：<工作区>\\invoice_match\\processed_invoices.xlsx\n正在保存未处理文件信息相关的Excel文件...\n未处理文件信息相关的Excel文件已保存至路径：<工作区>\\invoice_match\\unprocessed_files.xlsx\n脚本运行结束。\n", "exit_code": 0, "duration_s": 1.01}, "invoice_number_query": {"slug": "invoice_number_query", "title": "发票号码批量回捞", "script": "accounting/invoice_data_extractor.py", "stage": "daily", "fidelity": "real", "mode": "plain", "note": "按号码长度路由 8 位/20 位列，回填完整发票字段", "inputs": ["日常/invoicesnumlist.xlsx", "日常/全量发票查询导出结果.xlsx"], "started_at": "2026-09-15 22:36:14", "dialogs": [], "outputs": [{"path": "extracted_invoice_result.xlsx", "bytes": 5992, "kind": "xlsx", "preview": {"sheets": ["Sheet1"], "preview": {"Sheet1": [["提取数字", "发票号码", "数电票号码", "数电发票号码", "开票日期", "购买方名称", "销售方名称", "项目名称", "税率", "税额", "不含税金额", "价税合计金额"], ["26332000000012345601", "", "26332000000012345601", "26332000000012345601", "2026-02-05", "杭州示例科技有限公司", "杭州示例酒店管理有限公司", "*住宿服务*住宿费", "6%", 66.79, 1113.21, 1180], ["12345678", 12345678, "", "", "2026-02-08", "杭州示例科技有限公司", "示例高速公路管理有限公司", "通行费", "3%", 0.44, 14.56, 15], ["26332000000012345603", "", "26332000000012345603", "26332000000012345603", "2026-02-07", "杭州示例科技有限公司", "示例石油销售有限公司", "*汽油*车用汽油", "6%", 34.51, 265.49, 300]]}}}], "log": "当前脚本所在文件夹路径: <工作区>\\invoice_number_query\n成功读取 <工作区>\\invoice_number_query\\invoicesnumlist.xlsx 的第一列数据，数据形状为: (3, 1)\n成功读取目标文件 <工作区>\\invoice_number_query\\全量发票查询导出结果.xlsx 中 '发票基础信息' 工作表的标题行，标题为: ['序号', '发票号码', '数电票号码', '数电发票号码', '开票日期', '购买方名称', '销售方名称', '项目名称', '税率', '税额', '不含税金额', '价税合计金额', '开票人', '备注']\n成功读取目标文件 <工作区>\\invoice_number_query\\全量发票查询导出结果.xlsx 中 '发票基础信息' 工作表的全部数据，数据形状为: (4, 14)\n已成功将结果保存至 <工作区>\\invoice_number_query\\extracted_invoice_result.xlsx 文件中。\n", "exit_code": 0, "duration_s": 0.95}, "namelist_pack": {"slug": "namelist_pack", "title": "月底资料包匹配整合", "script": "integration/namelistget_feishu_v9.py", "stage": "monthend", "fidelity": "real", "mode": "harness", "note": "复制归集 → 关联申请单 → 图片转 PDF → 合并资料包 → 生成对应表与错误报告", "inputs": ["月底/namelist.xlsx", "月底/附件/（报销单+附件）", "月底/申请单/（关联申请单）"], "started_at": "2026-09-15 22:36:16", "dialogs": [{"type": "dialog_dir", "title": "请选择一个文件夹用于搜索【差旅申请单】", "value": "<工作区>\\namelist_pack/app"}, {"type": "input", "prompt": "按回车继续", "value": ""}, {"type": "dialog_dir", "title": "请选择要搜索关键词文件的文件夹（源文件所在位置）", "value": "<工作区>\\namelist_pack/src"}, {"type": "input", "prompt": "按回车键退出。", "value": ""}], "outputs": [{"path": "搜索结果/关键词与PDF文件对应表.xlsx", "bytes": 5624, "kind": "xlsx", "preview": {"sheets": ["Sheet1"], "preview": {"Sheet1": [["关键词", "PDF文件名 (不含后缀)", "差旅申请单编号", "成本编号/名称", "备注"], ["张三-住宿费", "差旅报销单-张三-住宿费", "KZCLSQ202603010001", "PRJ-2026-018 市场部差旅", ""]]}}}, {"path": "搜索结果/张三-住宿费.pdf", "bytes": 531812, "kind": "pdf", "preview": {"pages": 4, "first_page_text": "差旅报销单 关联申请单号：KZCLSQ202603010001 报销人：张三 费用合计：1180.00 元 出差日期：2026-03-02 至 2026-03-04"}}, {"path": "搜索结果/报销单-张三-住宿费/住宿发票.pdf", "bytes": 130514, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "电子发票（普通发票） 发票号码：26332000000012345601 *住宿服务*住宿费 1180.00"}}, {"path": "搜索结果/报销单-张三-住宿费/差旅报销单-张三-住宿费.pdf", "bytes": 132486, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "差旅报销单 关联申请单号：KZCLSQ202603010001 报销人：张三 费用合计：1180.00 元 出差日期：2026-03-02 至 2026-03-04"}}, {"path": "搜索结果/报销单-张三-住宿费/申请单-KZCLSQ202603010001.pdf", "bytes": 138536, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "差旅申请单 申请单编号 KZCLSQ202603010001 申请人 张三（研发中心） 成本编号/名称 成本编号:与项目或客户等相关的成本,请务必填写成本编号,非必要不可选择“无” PRJ-2026-018 市场部差旅 外出开始时间-外出 2026-03-02 09:00"}}, {"path": "搜索结果/报销单-张三-住宿费/行程单.pdf", "bytes": 131030, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "航空运输电子客票行程单 旅客姓名：张三 票价：860.00 元"}}], "log": "================================================================\n[harness] 执行: <工作区>\\namelist_pack\\integration\\namelistget_feishu_v9.py\n[harness] 工作目录: <工作区>\\namelist_pack\n================================================================\n开始执行文件搜索、复制与合并任务...\n准备中...\n[dialog] 目录选择 -> <工作区>\\namelist_pack/app\n已选定申请单搜索文件夹: <工作区>\\namelist_pack/app\n从 <工作区>\\namelist_pack\\namelist.xlsx 中获取到了 2 个关键词: ['关键词', '张三-住宿费']\n按回车继续\n\n模式 2: 准备选择【包含关键词文件】的源文件夹...\n[dialog] 目录选择 -> <工作区>\\namelist_pack/src\n已选定关键词搜索源: <工作区>\\namelist_pack/src\n\n--- 开始第一阶段：扫描（不含申请单存档文件夹）... ---\n当前搜索范围: <工作区>\\namelist_pack/src\n扫描完成。\n\n--- 开始第二阶段：处理文件并查找关联申请单号 ---\n\n处理关键词 '张三-住宿费'...\n  - 已处理文件夹: <工作区>\\namelist_pack/src\\报销单-张三-住宿费\n  - 已复制PDF: <工作区>\\namelist_pack/src\\报销单-张三-住宿费\\差旅报销单-张三-住宿费.pdf\n  - 发现关联申请单号: KZCLSQ202603010001\n\n--- 开始在您选择的文件夹中搜索、复制并提取信息 ---\n  - 找到并复制 '申请单-KZCLSQ202603010001.pdf' 到 '报销单-张三-住宿费'\n    - 成功提取成本编号: PRJ-2026-018 市场部差旅\n\n--- 开始第三阶段：合并文件夹内容为PDF ---\n\n正在处理 '张三-住宿费' 的合并任务...\n  - 成功！已合并 4 个文件为: 张三-住宿费.pdf\n\n--- 开始第四阶段：创建最终的状态对应表 ---\n已成功创建状态对应表：关键词与PDF文件对应表.xlsx\n\n--- 开始第五阶段：生成合并错误报告 ---\n未发生任何文件合并错误。\n\n总共成功处理了 1 个文件夹和 1 个PDF文件。\n所有任务执行完毕。\n按回车键退出。\n================================================================\n[harness] 结束，退出码 = 0\n================================================================\n", "exit_code": 0, "duration_s": 1.46}, "ofd_convert": {"slug": "ofd_convert", "title": "OFD 转 PDF", "script": "file_processing/convert_all.py", "stage": "daily", "fidelity": "simulated", "mode": "simulated", "note": "OFD 需真实电子发票样本；本机无 OFD 文件，日志为按代码逻辑生成的示意回放", "inputs": ["OFD 电子发票/文档（文件夹）"], "started_at": "2026-09-15 22:36:27", "dialogs": [], "outputs": [], "log": "--- PyMuPDF 版本: PyMuPDF 1.26.x ---\n正在扫描文件夹: <工作目录>\n找到了 3 个 OFD 文件，开始转换...\n\n--> 正在处理: 26332000000012345601.ofd\n    转换成功! 已保存为: 26332000000012345601.pdf\n\n--> 正在处理: 26332000000012345602.ofd\n    跳过! 文件 '26332000000012345602.pdf' 已存在。\n\n--> 正在处理: 26332000000012345603.ofd\n    转换成功! 已保存为: 26332000000012345603.pdf\n\n请按 Enter 键退出...", "exit_code": null, "duration_s": null}, "pdf_text_diff": {"slug": "pdf_text_diff", "title": "PDF 文本逐页比对", "script": "accounting/文字pdf对比脚本.py", "stage": "archive", "fidelity": "real", "mode": "harness", "note": "逐页提取文本，无差异/有差异 + unified diff", "inputs": ["归档/结算单-修改前.pdf", "归档/结算单-修改后.pdf"], "started_at": "2026-09-15 22:36:22", "dialogs": [{"type": "dialog_file", "title": "请选择第一份PDF文件（旧文件/原始文件）", "value": "<工作区>\\pdf_text_diff/in/结算单-修改前.pdf"}, {"type": "dialog_file", "title": "请选择第二份PDF文件（新文件/修改后文件）", "value": "<工作区>\\pdf_text_diff/in/结算单-修改后.pdf"}, {"type": "showinfo", "args": ["比对完成", "PDF文本比对已完成。\n\n共发现 1 个页面存在差异。\n\n详细报告已保存至:\n<工作区>\\pdf_text_diff\\in\\PDF文本比对结果_20260915_223623"]}, {"type": "startfile", "path": "<工作区>\\pdf_text_diff\\in\\PDF文本比对结果_20260915_223623"}], "outputs": [{"path": "in/PDF文本比对结果_20260915_223623/文本比对结果报告.xlsx", "bytes": 5192, "kind": "xlsx", "preview": {"sheets": ["Sheet1"], "preview": {"Sheet1": [["页码", "差异状态", "差异详情"], [1, "有差异", "--- 文件A (旧)\n+++ 文件B (新)\n@@ -1,5 +1,5 @@\n 服务结算单\n 收款方：示例科技服务有限公司\n-金额：1,000.00 元\n+金额：1,200.00 元\n 用途：技术服务费\n 结算日期：2026-01-15"]]}}}], "log": "================================================================\n[harness] 执行: <工作区>\\pdf_text_diff\\accounting\\文字pdf对比脚本.py\n[harness] 工作目录: <工作区>\\pdf_text_diff\n================================================================\n[dialog] 文件选择 -> <工作区>\\pdf_text_diff/in/结算单-修改前.pdf\n[dialog] 文件选择 -> <工作区>\\pdf_text_diff/in/结算单-修改后.pdf\n结果将保存在: <工作区>\\pdf_text_diff\\in\\PDF文本比对结果_20260915_223623\n开始比对... 共 1 页。\n正在比对第 1 / 1 页...\n\n比对完成！\n[showinfo] 比对完成 | PDF文本比对已完成。\n\n共发现 1 个页面存在差异。\n\n详细报告已保存至:\n<工作区>\\pdf_text_diff\\in\\PDF文本比对结果_20260915_223623\n[startfile] 已拦截打开 -> <工作区>\\pdf_text_diff\\in\\PDF文本比对结果_20260915_223623\n================================================================\n[harness] 结束，退出码 = 0\n================================================================\n", "exit_code": 0, "duration_s": 1.26}, "profit_merge": {"slug": "profit_merge", "title": "利润表多月合并", "script": "accounting/利润表生成.py", "stage": "aux", "fidelity": "real", "mode": "plain", "note": "按利润表项目外连接，行次取样本文件，输出带时间戳合并表", "inputs": ["辅助/利润表202601.xlsx", "辅助/利润表202602.xlsx"], "started_at": "2026-09-15 22:36:23", "dialogs": [], "outputs": [{"path": "merge_log.log", "bytes": 73, "kind": "text", "preview": "2026-09-15 22:36:24,537 - INFO: ���ѡ���д���Դ�ļ�: �����202601.xlsx\n"}, {"path": "合并利润表_带行次_20260915_2236.xlsx", "bytes": 5848, "kind": "xlsx", "preview": {"sheets": ["Sheet1"], "preview": {"Sheet1": [["行次", "利润表项目", "2026-01", "2026-02"], [9, "三、利润总额", 283600, 344600], [8, "二、营业利润", 283600, 344600], [10, "减：所得税费用", 42540, 51690], [2, "减：营业成本", 620000, 668000], [11, "四、净利润", 241060, 292910], [6, "研发费用", 118000, 126000], [3, "税金及附加", 5600, 6100], [5, "管理费用", 152300, 158900]]}}}], "log": "合并完成！文件已保存至:\n<工作区>\\profit_merge\\合并利润表_带行次_20260915_2236.xlsx\n", "exit_code": 0, "duration_s": 0.95}, "repo_audit": {"slug": "repo_audit", "title": "仓库重复文件自检", "script": "accounting/analyze_duplicates.py", "stage": "aux", "fidelity": "real", "mode": "plain", "note": "按核心名分组 + difflib 相似度，输出 保留/审查/删除 建议报告", "inputs": ["仓库全部 .py 源码副本（59 个）"], "started_at": "2026-09-15 22:36:26", "dialogs": [], "outputs": [{"path": "文件整理分析报告.md", "bytes": 9055, "kind": "text", "preview": "# 📋 项目文件整理分析报告\n\n> **生成时间**：2026-09-15 22:36:26\n> **扫描目录**：`<工作区>\\repo_audit`\n> **扫描到的 .py 文件总数**：59\n> **候选重复组数**：5 组\n\n---\n\n## ⚠️ 重要说明\n\n- 本报告**仅提供分析建议**，不会自动删除或移动任何文件。\n- **\"删除\"** 建议意味着该文件与组内最新文件内容高度相似（≥95%），可安全清理。\n- **\"审查\"** 建议意味着文件内容部分相似或存在歧义，需要你人工确认后再决定。\n- **\"保留\"** 建议意味着该文件是独立版本或组内最新文件，应当保留。\n- 内容比对使用 `difflib.SequenceMatcher`，在规范化空白后计算相似度。\n\n---\n\n## 📊 统计摘要\n\n| 建议状态 | 文件数量 |\n|---------|---------|\n| ✅ 保留   | 55 |\n| ❌ 删除   | 2 |\n| 🔍 审查   | 2 |\n| **合计** |"}], "log": "[1/4] 开始扫描 .py 文件...\n   找到 59 个 .py 源码文件\n[2/4] 按核心文件名分组...\n   候选重复组：5 组\n[3/4] 比对每组内容相似度...\n   正在比对：脱敏汇总（2 个文件）\n     [KEEP] 保留: accounting\\脱敏汇总.py\n     [KEEP] 保留: 脱敏汇总.py\n   正在比对：pdf_processor_for_approval（2 个文件）\n     [KEEP] 保留: file_processing\\pdf_processor_for_approval.py\n     [DEL] 删除: 202602\\飞书\\pdf_processor_for_approval.py\n   正在比对：delete_duplicate_files（2 个文件）\n     [REVIEW] 审查: file_processing\\delete_duplicate_files_v2.py\n     [REVIEW] 审查: file_processing\\delete_duplicate_files.py\n   正在比对：getpdf（2 个文件）\n     [KEEP] 保留: file_processing\\getpdf_v2.py\n     [DEL] 删除: file_processing\\getpdf_v1.py\n   正在比对：web_file_downloader（2 个文件）\n     [KEEP] 保留: integration\\web_file_downloader_v1.py\n     [KEEP] 保留: integration\\web_file_downloader_v2.py\n[4/4] 生成 Markdown 报告...\n\n[完成] 报告已生成：<工作区>\\repo_audit\\文件整理分析报告.md\n   总文件数：59\n   建议保留：55\n   建议删除：2\n   建议审查：2\n", "exit_code": 0, "duration_s": 0.39}, "voucher_compare": {"slug": "voucher_compare", "title": "凭证深度比对（Jaccard）", "script": "accounting/compare_vouchers_advanced.py", "stage": "archive", "fidelity": "real", "mode": "harness", "note": "覆盖 内容修改/换号/新增/删除 四类差异，附单据数变化标红", "inputs": ["归档/凭证清单_修改前.xlsx", "归档/凭证清单_修改后.xlsx"], "started_at": "2026-09-15 22:36:19", "dialogs": [{"type": "dialog_file", "title": "请选择【修改前】的凭证清单Excel文件", "value": "<工作区>\\voucher_compare/in/凭证清单_修改前.xlsx"}, {"type": "dialog_file", "title": "请选择【修改后】的凭证清单Excel文件", "value": "<工作区>\\voucher_compare/in/凭证清单_修改后.xlsx"}, {"type": "showinfo", "args": ["完成", "比对完成！\n\n所有相关文件已归档至新文件夹:\n<工作区>\\voucher_compare\\in\\凭证比对结果_20260915_223620"]}, {"type": "startfile", "path": "<工作区>\\voucher_compare\\in\\凭证比对结果_20260915_223620"}], "outputs": [{"path": "in/凭证比对结果_20260915_223620/凭证比对分析报告(最终版)_20260915_223620.xlsx", "bytes": 13175, "kind": "xlsx", "preview": {"sheets": ["比对结果摘要", "仅内容修改(详细)", "仅内容修改(汇总)", "仅凭证号修改(详细)", "仅凭证号修改(汇总)", "新增的凭证", "删除的凭证"], "preview": {"比对结果摘要": [["比对项目", "数量"], ["内容修改的凭证数", 1], ["仅凭证号修改的凭证数", 1], ["编号和内容均修改的凭证数", 0], ["新增的凭证数", 2], ["删除的凭证数", 1]], "仅内容修改(详细)": [["凭证类别_修改前", "凭证号_修改前", "凭证日期_修改前", "附单据数_修改前", "摘要_修改前", "科目编码_修改前", "科目名称_修改前", "借方金额_修改前", "贷方金额_修改前", "制单人_修改前", "审核人_修改前", "项目编码_修改前"], ["修改前ID: 记-6-2026-01-31  |  修改后ID: 记-6-2026-01-31", "", "", "", "", "", "", "", "", "", "", ""], ["记", "6", "2026-01-31", "2", "计提折旧-管理", "5602", "管理费用", 2000, 0, "示例会计", "示例主管", ""], ["记", "6", "2026-01-31", "2", "计提折旧-生产", "5101", "制造费用", 3000, 0, "示例会计", "示例主管", ""], ["记", "6", "2026-01-31", "2", "计提折旧", "1602", "累计折旧", 0, 5000, "示例会计", "示例主管", ""], ["", "", "", "", "", "", "", "", "", "", "", ""]], "仅内容修改(汇总)": [["凭证类别", "凭证号", "凭证日期"], ["记", "6", "2026-01-31"]]}}}, {"path": "in/凭证比对结果_20260915_223620/凭证清单_修改前.xlsx", "bytes": 5645, "kind": "xlsx", "preview": {"sheets": ["Sheet1"], "preview": {"Sheet1": [["凭证类别", "凭证号", "凭证日期", "附单据数", "摘要", "科目编码", "科目名称", "借方金额", "贷方金额", "制单人", "审核人"], ["记", 1, "2026-01-31", 3, "报销差旅费", "5602", "管理费用", 1000, 0, "示例会计", "示例主管"], ["记", 1, "2026-01-31", 3, "报销差旅费", "1001", "库存现金", 0, 1000, "示例会计", "示例主管"], ["记", 2, "2026-01-31", 2, "采购办公用品", "5602", "管理费用", 500, 0, "示例会计", "示例主管"], ["记", 2, "2026-01-31", 2, "采购办公用品", "1002", "银行存款", 0, 500, "示例会计", "示例主管"], ["记", 3, "2026-01-31", 1, "支付房租", "5602", "管理费用", 8000, 0, "示例会计", "示例主管"], ["记", 3, "2026-01-31", 1, "支付房租", "1002", "银行存款", 0, 8000, "示例会计", "示例主管"], ["记", 6, "2026-01-31", 2, "计提折旧-管理", "5602", "管理费用", 2000, 0, "示例会计", "示例主管"], ["记", 6, "2026-01-31", 2, "计提折旧-生产", "5101", "制造费用", 3000, 0, "示例会计", "示例主管"]]}}}, {"path": "in/凭证比对结果_20260915_223620/凭证清单_修改后.xlsx", "bytes": 5757, "kind": "xlsx", "preview": {"sheets": ["Sheet1"], "preview": {"Sheet1": [["凭证类别", "凭证号", "凭证日期", "附单据数", "摘要", "科目编码", "科目名称", "借方金额", "贷方金额", "制单人", "审核人"], ["记", 1, "2026-01-31", 3, "报销差旅费", "5602", "管理费用", 1000, 0, "示例会计", "示例主管"], ["记", 1, "2026-01-31", 3, "报销差旅费", "1001", "库存现金", 0, 1000, "示例会计", "示例主管"], ["记", 2, "2026-01-31", 2, "采购办公用品", "5602", "管理费用", 650, 0, "示例会计", "示例主管"], ["记", 2, "2026-01-31", 2, "采购办公用品", "1002", "银行存款", 0, 650, "示例会计", "示例主管"], ["记", 4, "2026-01-31", 1, "支付房租", "5602", "管理费用", 8000, 0, "示例会计", "示例主管"], ["记", 4, "2026-01-31", 1, "支付房租", "1002", "银行存款", 0, 8000, "示例会计", "示例主管"], ["记", 5, "2026-01-31", 1, "支付水电费", "5602", "管理费用", 320, 0, "示例会计", "示例主管"], ["记", 5, "2026-01-31", 1, "支付水电费", "1002", "银行存款", 0, 320, "示例会计", "示例主管"]]}}}], "log": "================================================================\n[harness] 执行: <工作区>\\voucher_compare\\accounting\\compare_vouchers_advanced.py\n[harness] 工作目录: <工作区>\\voucher_compare\n================================================================\n[dialog] 文件选择 -> <工作区>\\voucher_compare/in/凭证清单_修改前.xlsx\n[dialog] 文件选择 -> <工作区>\\voucher_compare/in/凭证清单_修改后.xlsx\n\n正在加载和清理数据，请稍候...\n数据加载完成。\n正在进行深度数据比对，此过程可能需要一些时间...\n正在对 1 个已删除和 2 个已新增的凭证进行相似度匹配...\n比对完成。\n\n已创建结果文件夹: <工作区>\\voucher_compare\\in\\凭证比对结果_20260915_223620\n正在生成报告到: <工作区>\\voucher_compare\\in\\凭证比对结果_20260915_223620\\凭证比对分析报告(最终版)_20260915_223620.xlsx\n正在对报告进行最终格式化（调整列宽和高亮差异）...\n已将【修改前】文件复制至结果文件夹。\n已将【修改后】文件复制至结果文件夹。\n[showinfo] 完成 | 比对完成！\n\n所有相关文件已归档至新文件夹:\n<工作区>\\voucher_compare\\in\\凭证比对结果_20260915_223620\n\n比对报告生成完毕！所有文件已归档。\n操作完成，正在尝试打开结果文件夹: <工作区>\\voucher_compare\\in\\凭证比对结果_20260915_223620\n[startfile] 已拦截打开 -> <工作区>\\voucher_compare\\in\\凭证比对结果_20260915_223620\n================================================================\n[harness] 结束，退出码 = 0\n================================================================\n", "exit_code": 0, "duration_s": 1.25}, "voucher_list_compare": {"slug": "voucher_list_compare", "title": "新旧凭证列表整组比对", "script": "accounting/新旧凭证列表比较及差异输出.py", "stage": "archive", "fidelity": "real", "mode": "harness", "note": "整组匹配思路：凭证号整组一致才算匹配，差异行红字标注", "inputs": ["归档/凭证清单_修改前.xlsx", "归档/凭证清单_修改后.xlsx"], "started_at": "2026-09-15 22:36:20", "dialogs": [{"type": "input", "prompt": "请输入旧凭证列表文件的地址：", "value": "<工作区>\\voucher_list_compare/in/凭证清单_修改前.xlsx"}, {"type": "input", "prompt": "请输入新凭证列表文件的地址：", "value": "<工作区>\\voucher_list_compare/in/凭证清单_修改后.xlsx"}], "outputs": [{"path": "比较结果_20260915_223621.xlsx", "bytes": 8822, "kind": "xlsx", "preview": {"sheets": ["匹配结果", "旧凭证未匹配行", "新凭证未匹配行", "凭证号匹配结果"], "preview": {"匹配结果": [["新凭证类别", "新凭证号", "旧凭证类别", "旧凭证号", "凭证日期", "附单据数", "摘要", "科目编码", "科目名称", "借方金额", "贷方金额", "制单人"], ["记", 1, "记", 1, "2026-01-31", 3, "报销差旅费", 5602, "管理费用", 1000, 0, "示例会计"], ["记", 1, "记", 1, "2026-01-31", 3, "报销差旅费", 1001, "库存现金", 0, 1000, "示例会计"], ["记", 4, "记", 3, "2026-01-31", 1, "支付房租", 5602, "管理费用", 8000, 0, "示例会计"], ["记", 4, "记", 3, "2026-01-31", 1, "支付房租", 1002, "银行存款", 0, 8000, "示例会计"]], "旧凭证未匹配行": [["凭证类别", "旧凭证号", "凭证日期", "附单据数", "摘要", "科目编码", "科目名称", "借方金额", "贷方金额", "制单人", "审核人", "旧分组标记"], ["记", 2, "2026-01-31", 2, "采购办公用品", 5602, "管理费用", 500, 0, "示例会计", "示例主管", 1], ["记", 2, "2026-01-31", 2, "采购办公用品", 1002, "银行存款", 0, 500, "示例会计", "示例主管", 1], ["记", 6, "2026-01-31", 2, "计提折旧-管理", 5602, "管理费用", 2000, 0, "示例会计", "示例主管", 3], ["记", 6, "2026-01-31", 2, "计提折旧-生产", 5101, "制造费用", 3000, 0, "示例会计", "示例主管", 3], ["记", 6, "2026-01-31", 2, "计提折旧", 1602, "累计折旧", 0, 5000, "示例会计", "示例主管", 3]], "新凭证未匹配行": [["凭证类别", "新凭证号", "凭证日期", "附单据数", "摘要", "科目编码", "科目名称", "借方金额", "贷方金额", "制单人", "审核人", "新分组标记"], ["记", 2, "2026-01-31", 2, "采购办公用品", 5602, "管理费用", 650, 0, "示例会计", "示例主管", 1], ["记", 2, "2026-01-31", 2, "采购办公用品", 1002, "银行存款", 0, 650, "示例会计", "示例主管", 1], ["记", 5, "2026-01-31", 1, "支付水电费", 5602, "管理费用", 320, 0, "示例会计", "示例主管", 3], ["记", 5, "2026-01-31", 1, "支付水电费", 1002, "银行存款", 0, 320, "示例会计", "示例主管", 3], ["记", 6, "2026-01-31", 2, "计提折旧-管理部", 5602, "管理费用", 2000, 0, "示例会计", "示例主管", 4], ["记", 6, "2026-01-31", 2, "计提折旧-生产", 5101, "制造费用", 3000, 0, "示例会计", "示例主管", 4], ["记", 6, "2026-01-31", 2, "计提折旧", 1602, "累计折旧", 0, 5000, "示例会计", "示例主管", 4]]}}}], "log": "================================================================\n[harness] 执行: <工作区>\\voucher_list_compare\\accounting\\新旧凭证列表比较及差异输出.py\n[harness] 工作目录: <工作区>\\voucher_list_compare\n================================================================\n请输入旧凭证列表文件的地址：<工作区>\\voucher_list_compare/in/凭证清单_修改前.xlsx\n请输入新凭证列表文件的地址：<工作区>\\voucher_list_compare/in/凭证清单_修改后.xlsx\n================================================================\n[harness] 结束，退出码 = 0\n================================================================\n", "exit_code": 0, "duration_s": 1.06}, "voucher_split": {"slug": "voucher_split", "title": "凭证 PDF 拆分", "script": "accounting/split_vouchers_凭证PDF拆分.py", "stage": "archive", "fidelity": "real", "mode": "harness", "note": "按 年月+基础凭证号 分组，输出 {年月}-{凭证号}-{N}页.pdf", "inputs": ["归档/记账凭证-202601.pdf（3 页 2 张凭证）"], "started_at": "2026-09-15 22:36:17", "dialogs": [{"type": "dialog_file", "title": "请选择需要处理的凭证PDF文件", "value": "<工作区>\\voucher_split/in/记账凭证-202601.pdf"}], "outputs": [{"path": "in/记账凭证-202601_拆分结果/2026-01-记-001-2页.pdf", "bytes": 138972, "kind": "pdf", "preview": {"pages": 2, "first_page_text": "记账凭证 日期: 2026-01-31 凭证号: 记-001-1/2 摘要：报销差旅费 借：管理费用-差旅费 1,000.00 贷：库存现金 1,000.00"}}, {"path": "in/记账凭证-202601_拆分结果/2026-01-记-002-1页.pdf", "bytes": 138063, "kind": "pdf", "preview": {"pages": 1, "first_page_text": "记账凭证 日期: 2026-01-31 凭证号: 记-002-1/1 摘要：采购办公用品 借：管理费用-办公费 500.00 贷：银行存款 500.00"}}], "log": "================================================================\n[harness] 执行: <工作区>\\voucher_split\\accounting\\split_vouchers_凭证PDF拆分.py\n[harness] 工作目录: <工作区>\\voucher_split\n================================================================\n正在打开文件选择窗口...\n[dialog] 文件选择 -> <工作区>\\voucher_split/in/记账凭证-202601.pdf\n已选择文件: <工作区>\\voucher_split/in/记账凭证-202601.pdf\n结果将保存在: <工作区>\\voucher_split\\in\\记账凭证-202601_拆分结果\n文件共有 3 页，开始逐页解析...\n\n开始生成新的PDF文件...\n  -> 已创建文件: <工作区>\\voucher_split/in\\记账凭证-202601_拆分结果\\2026-01-记-001-2页.pdf\n  -> 已创建文件: <工作区>\\voucher_split/in\\记账凭证-202601_拆分结果\\2026-01-记-002-1页.pdf\n\n处理完成！共生成 2 个凭证文件。\n所有文件已保存至绝对路径: <工作区>\\voucher_split\\in\\记账凭证-202601_拆分结果\n================================================================\n[harness] 结束，退出码 = 0\n================================================================\n", "exit_code": 0, "duration_s": 0.68}, "web_downloader": {"slug": "web_downloader", "title": "网银/网页文件下载（实验）", "script": "integration/web_file_downloader_v2.py", "stage": "experiment", "fidelity": "simulated", "mode": "simulated", "note": "Selenium 需要真实网页与 Edge 会话，未接入生产链路；日志为示意", "inputs": ["人工输入的 https URL"], "started_at": "2026-09-15 22:36:27", "dialogs": [], "outputs": [], "log": "请输入安全的网页URL（https://开头）: https://example-bank.example.com/statement\n[Selenium] 启动 Edge 驱动（禁用 SSL 校验，仅测试环境）\n[Selenium] 打开页面完成，定位「下载」元素 ×3\n  - 点击第 1 个「下载」-> 已保存 银行流水_202601.pdf\n  - 点击第 2 个「下载」-> 已保存 银行流水_202602.pdf\n  - 点击第 3 个「下载」-> 已保存 回单明细.xlsx\n下载目录：~/Downloads/Secure_Downloads\n[说明] 实验性功能：规划用于替代畅捷通/网银的人工下载环节", "exit_code": null, "duration_s": null}}, "scriptReplay": {"accounting/invoice.py": "invoice_match", "accounting/summary_by_invoice_category.py": "invoice_category", "file_processing/134_invoicetofoldertxtclose.py": "invoice_enhanced", "accounting/invoice_data_extractor.py": "invoice_number_query", "file_processing/pdf_processor_for_approval.py": "approval_rename", "integration/namelistget_feishu_v9.py": "namelist_pack", "accounting/split_vouchers_凭证PDF拆分.py": "voucher_split", "accounting/清单提取拆分好的凭证.py": "audit_extract", "accounting/compare_vouchers_advanced.py": "voucher_compare", "accounting/新旧凭证列表比较及差异输出.py": "voucher_list_compare", "accounting/bankStatementSplitterBasedOnJournal.py": "bank_split", "accounting/文字pdf对比脚本.py": "pdf_text_diff", "accounting/利润表生成.py": "profit_merge", "accounting/合并现金流量表.py": "cashflow_merge", "file_processing/processedfilesinfoalltxt.py": "approval_amounts", "accounting/analyze_duplicates.py": "repo_audit", "integration/get_filename_from_feishu.py": "clipboard_summary", "file_processing/convert_all.py": "ofd_convert", "integration/web_file_downloader_v2.py": "web_downloader", "accounting/IntercompanyOutstandingCleanupTool.py": "intercompany"}, "mapDefault": ["integration/get_filename_from_feishu.py", "file_processing/134_invoicetofoldertxtclose.py", "accounting/invoice.py", "accounting/summary_by_invoice_category.py", "accounting/invoice_data_extractor.py", "file_processing/convert_all.py", "file_processing/pdf_processor_for_approval.py", "integration/namelistget_feishu_v9.py", "integration/get_dingding_form.py", "202602/飞书/get_dingding_form_keyword_line_1_and_2_with_name_from_line2_with_date_in_result.py", "accounting/compare_vouchers_advanced.py", "accounting/新旧凭证列表比较及差异输出.py", "accounting/清单提取拆分好的凭证.py", "accounting/split_vouchers_凭证PDF拆分.py", "accounting/bankStatementSplitterBasedOnJournal.py", "accounting/文字pdf对比脚本.py", "accounting/利润表生成.py", "accounting/合并现金流量表.py", "accounting/analyze_duplicates.py", "accounting/IntercompanyOutstandingCleanupTool.py", "file_processing/processedfilesinfoalltxt.py", "integration/web_file_downloader_v2.py"], "audit": {"vouchers": [{"id": "记-001", "pages": 2, "split_file": "2026-01-记-001-2页.pdf", "split_bytes": 138972, "extract_status": "成功提取", "extract_files": "2026-01-记-001-2页.pdf", "extract_report": "提取结果报告.xlsx"}, {"id": "记-002", "pages": 1, "split_file": "2026-01-记-002-1页.pdf", "split_bytes": 138063, "extract_status": "成功提取", "extract_files": "2026-01-记-002-1页.pdf", "extract_report": "提取结果报告.xlsx"}], "steps": [{"title": "① 整本记账凭证（畅捷通导出）", "detail": "月底结账后导出的整本凭证 PDF，按凭证号连续排列（样例 3 页）", "files": [{"name": "记账凭证-202601.pdf", "meta": "3 页 · 外部来源"}]}, {"title": "② 按 年月+凭证号 拆分", "detail": "split_vouchers_凭证PDF拆分.py 逐页解析「日期 / 凭证号」，按凭证归组输出独立文件", "files": [{"name": "2026-01-记-001-2页.pdf", "meta": "2 页 · 136 KB", "voucher": "记-001"}, {"name": "2026-01-记-002-1页.pdf", "meta": "1 页 · 135 KB", "voucher": "记-002"}]}, {"title": "③ 凭证清单（决定提取范围）", "detail": "审计清单 Excel：凭证类别 / 凭证号 / 凭证日期，作为提取白名单", "files": [{"name": "凭证清单.xlsx", "meta": "样例 2 张凭证"}]}, {"title": "④ 按清单提取审计凭证", "detail": "清单提取拆分好的凭证.py 用文件名前缀 {YYYY-MM}-{类别}-{号zfill(3)} 匹配并复制", "files": [{"name": "2026-01-记-001-2页.pdf", "meta": "138972 B", "voucher": "记-001"}, {"name": "2026-01-记-002-1页.pdf", "meta": "138063 B", "voucher": "记-002"}, {"name": "提取结果报告.xlsx", "meta": "提取结果报告"}]}, {"title": "⑤ 归档", "detail": "提取结果连同报告归档进「凭证提取结果_{时间戳}/」，任意凭证 5 分钟可完整溯源", "files": []}], "note": "证据链基于 sample_data 生成假数据、由 run_replay.py 真实执行采集；提取状态与文件名直接来自「提取结果报告.xlsx」的回放快照。"}};
+</script>
+<script>
+"use strict";
+window.onerror = function (msg, src, line) {
+  var el = document.getElementById("err");
+  el.style.display = "block";
+  el.textContent = "页面脚本错误: " + msg + " @" + (src || "") + ":" + line;
+};
+var D = window.__CONSOLE_DATA__ || {};
+var STAGES = D.stages || [];
+var STATUSES = D.statuses || {};
+var ARTIFACTS = D.artifacts || {};
+var SCRIPTS = D.scripts || [];
+var REPLAYS = D.replays || {};
+var SCRIPT_REPLAY = D.scriptReplay || {};
+var STAGE_MAP = {}; STAGES.forEach(function (s) { STAGE_MAP[s.id] = s; });
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function fmtBytes(n) {
+  if (n == null) return "";
+  if (n < 1024) return n + " B";
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+  return (n / 1024 / 1024).toFixed(2) + " MB";
+}
+function el(html) { var t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
+function stageOf(id) { return STAGE_MAP[id] || { name: id, color: "#64748b", icon: "?" }; }
+function statusBadge(st) {
+  var s = STATUSES[st] || { label: st, color: "#64748b" };
+  return '<span class="badge ' + esc(st) + '">' + esc(s.label) + "</span>";
+}
+function scriptById(id) { for (var i = 0; i < SCRIPTS.length; i++) if (SCRIPTS[i].id === id) return SCRIPTS[i]; return null; }
+function replayOf(script) {
+  var slug = SCRIPT_REPLAY[script.id];
+  return slug && REPLAYS[slug] ? REPLAYS[slug] : null;
+}
+function fidelityBadge(rp) {
+  if (!rp) return '<span class="badge doc">功能档案</span>';
+  return rp.fidelity === "real"
+    ? '<span class="badge real">实测回放</span>'
+    : '<span class="badge sim">示意回放</span>';
+}
+
+function renderTop() {
+  var real = 0, sim = 0;
+  Object.keys(REPLAYS).forEach(function (k) { REPLAYS[k].fidelity === "real" ? real++ : sim++; });
+  document.getElementById("topMeta").innerHTML =
+    '<span><span class="dot ok"></span>演示数据（生成假数据）</span>' +
+    '<span>脚本 <b>' + SCRIPTS.length + '</b></span>' +
+    '<span>核心脚本 <b>' + SCRIPTS.filter(function (s) { return s.tracked; }).length + '</b></span>' +
+    '<span>实测回放 <b>' + real + '</b> · 示意 <b>' + sim + '</b></span>';
+  document.getElementById("stats").innerHTML = [
+    { n: SCRIPTS.length, l: "脚本总数（含历史版本）", c: "" },
+    { n: SCRIPTS.filter(function (s) { return s.tracked; }).length, l: "核心脚本（未公开）", c: "g" },
+    { n: (D.lineages || []).length, l: "版本谱系（家族）", c: "p" },
+    { n: real, l: "本轮真实执行回放", c: "w" }
+  ].map(function (x) {
+    return '<div class="stat ' + x.c + '"><div class="n">' + x.n + '<small>项</small></div><div class="l">' + x.l + "</div></div>";
+  }).join("");
+}
+
+var ORDER = { core: 0, active: 1, wip: 2, experiment: 3, broken: 4, legacy: 5, dead: 6 };
+function renderPipeline() {
+  var seen = {};
+  var wrap = document.getElementById("pipeline");
+  STAGES.forEach(function (st) {
+    var items = SCRIPTS.filter(function (s) { return s.stage === st.id && replayOf(s); })
+      .sort(function (a, b) { return (ORDER[a.status] || 9) - (ORDER[b.status] || 9); });
+    var coreItems = SCRIPTS.filter(function (s) { return s.stage === st.id && !replayOf(s) && (s.status === "core" || s.status === "active"); })
+      .slice(0, 4);
+    var col = el('<div class="pipe-col"></div>');
+    col.appendChild(el('<div class="pipe-head"><div class="t"><span class="ic">' + st.icon + "</span>" + esc(st.name) + '</div><div class="d">' + esc(st.desc) + "</div></div>"));
+    items.concat(coreItems).forEach(function (s) {
+      var rp = replayOf(s);
+      var card = el('<div class="card" style="border-left-color:' + st.color + '"></div>');
+      card.innerHTML =
+        '<div class="nm">' + esc(s.name) + "</div>" +
+        '<div class="pp">' + esc(s.purpose) + "</div>" +
+        '<div class="meta">' + statusBadge(s.status) + fidelityBadge(rp) +
+        (s.tracked ? '<span class="badge core">核心</span>' : "") + "</div>";
+      card.onclick = function () { openScript(s.id, !!rp); };
+      col.appendChild(card);
+      seen[s.id] = 1;
+    });
+    var rest = SCRIPTS.filter(function (s) { return s.stage === st.id && !seen[s.id]; }).length;
+    if (rest) {
+      var more = el('<div class="card" style="border-left-color:#aebacd;opacity:.9"></div>');
+      more.innerHTML = '<div class="nm" style="color:var(--muted);font-family:var(--sans)">其余 ' + rest + ' 个脚本（历史版本 / 内部工具）</div><div class="pp">在「功能地图 → 脚本全目录」中查看完整清单</div>';
+      more.onclick = function () { switchView("map"); };
+      col.appendChild(more);
+    }
+    wrap.appendChild(col);
+  });
+}
+
+var filterStages = {};
+function renderStageChips() {
+  var chips = document.getElementById("stageChips");
+  chips.appendChild(makeChip("全部阶段", null, true));
+  STAGES.forEach(function (st) {
+    chips.appendChild(makeChip(st.name, st.id, false));
+  });
+  function makeChip(label, id, on) {
+    var c = el('<span class="chip' + (on ? " on" : "") + '">' + esc(label) + "</span>");
+    if (id) c.style.borderColor = on ? "" : "var(--line)";
+    c.onclick = function () {
+      if (id === null) { filterStages = {}; chips.querySelectorAll(".chip").forEach(function (x, i) { x.classList.toggle("on", i === 0); }); }
+      else { filterStages[id] = !filterStages[id]; c.classList.toggle("on", filterStages[id]); chips.firstChild.classList.remove("on"); }
+      renderMap(); renderCatalog();
+    };
+    return c;
+  }
+}
+function stageAllowed(st) {
+  var any = Object.keys(filterStages).some(function (k) { return filterStages[k]; });
+  return !any || !!filterStages[st];
+}
+
+var svgNS = "http://www.w3.org/2000/svg";
+var showAllVersions = false;
+
+function svgEl(tag, attrs, text) {
+  var e = document.createElementNS(svgNS, tag);
+  for (var k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  return e;
+}
+function shortArtifact(id, max) {
+  var n = ARTIFACTS[id] ? ARTIFACTS[id].name : id;
+  max = max || 24;
+  return n.length > max ? n.slice(0, max - 1) + "…" : n;
+}
+function textWidth(s, fontSize) {
+  var w = 0;
+  for (var i = 0; i < s.length; i++) {
+    var c = s.charCodeAt(i);
+    var wide = (c >= 0x2e80 && c <= 0x9fff) || (c >= 0xf900 && c <= 0xfaff) || (c >= 0xff00 && c <= 0xffef);
+    w += wide ? fontSize : fontSize * 0.62;
+  }
+  return w;
+}
+function fitText(s, maxPx, fontSize) {
+  if (textWidth(s, fontSize) <= maxPx) return s;
+  var out = "";
+  for (var i = 0; i < s.length; i++) {
+    if (textWidth(out + s[i] + "…", fontSize) > maxPx) break;
+    out += s[i];
+  }
+  return out + "…";
+}
+function producersOf(a) { return SCRIPTS.filter(function (s) { return (s.output_refs || []).indexOf(a) >= 0; }); }
+function consumersOf(a) { return SCRIPTS.filter(function (s) { return (s.input_refs || []).indexOf(a) >= 0; }); }
+
+function mapVisibleScripts() {
+  return SCRIPTS.filter(function (s) {
+    var refs = (s.input_refs || []).length + (s.output_refs || []).length;
+    if (!refs || !stageAllowed(s.stage)) return false;
+    if (showAllVersions) return true;
+    return (D.mapDefault || []).indexOf(s.id) >= 0;
+  });
+}
+
+function renderMap() {
+  var svg = document.getElementById("mapSvg");
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  var visible = mapVisibleScripts();
+  var vset = {};
+  visible.forEach(function (s) { vset[s.id] = 1; });
+
+  var byStage = {};
+  STAGES.forEach(function (st) { byStage[st.id] = []; });
+  visible.forEach(function (s) { byStage[s.stage].push(s); });
+  STAGES.forEach(function (st) {
+    byStage[st.id].sort(function (a, b) {
+      var ao = (a.core_chain ? 0 : 1) * 100 + (ORDER[a.status] || 9);
+      var bo = (b.core_chain ? 0 : 1) * 100 + (ORDER[b.status] || 9);
+      return ao - bo;
+    });
+  });
+
+  var CARDW = 254, CHIP = 16, GAP = 18, PAD = 36, TOP = 92, COLW = 298;
+  var nodes = {};
+  var colBottom = {};
+  STAGES.forEach(function (st, i) {
+    var y = TOP + 26;
+    byStage[st.id].forEach(function (s) {
+      var produces = (s.output_refs || []).map(function (a) { return { id: a }; });
+      var externals = (s.input_refs || []).filter(function (a) { return producersOf(a).length === 0; });
+      var chips = produces.length + externals.length;
+      var shownLines = Math.min(chips, 4) + (chips > 4 ? 1 : 0);
+      var h = 46 + shownLines * CHIP;
+      nodes[s.id] = { x: PAD + i * COLW, y: y, w: CARDW, h: h, s: s, produces: produces, externals: externals };
+      y += h + GAP;
+    });
+    colBottom[st.id] = y;
+  });
+
+  var maxBottom = 240;
+  STAGES.forEach(function (st) { maxBottom = Math.max(maxBottom, colBottom[st.id]); });
+  var H = maxBottom + 30;
+  var W = PAD + STAGES.length * COLW + 6;
+  svg.setAttribute("width", W); svg.setAttribute("height", H);
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+
+  STAGES.forEach(function (st, i) {
+    var x = PAD + i * COLW - 12;
+    svg.appendChild(svgEl("rect", { x: x, y: 16, width: COLW - 18, height: H - 30, rx: 12, fill: "#f7f9fd", stroke: "#dfe6f0" }));
+    svg.appendChild(svgEl("text", { x: x + 18, y: 44, fill: st.color, "font-size": 13.5, "font-weight": 600 }, st.icon + " " + st.name));
+    svg.appendChild(svgEl("text", { x: x + 18, y: 62, fill: "#8a99b0", "font-size": 10.5 }, byStage[st.id].length + " 个脚本"));
+  });
+
+  var edgeLayer = svgEl("g");
+  svg.appendChild(edgeLayer);
+  Object.keys(ARTIFACTS).forEach(function (a) {
+    var ps = producersOf(a).filter(function (s) { return vset[s.id]; });
+    var cs = consumersOf(a).filter(function (s) { return vset[s.id]; });
+    ps.forEach(function (p) {
+      cs.forEach(function (c) {
+        if (p.id === c.id) return;
+        var A = nodes[p.id], B = nodes[c.id];
+        if (!A || !B) return;
+        var x1 = A.x + A.w, y1 = A.y + 24, x2 = B.x, y2 = B.y + 24;
+        var same = Math.abs(x1 - x2) < 4;
+        var dx = same ? 56 : Math.max(40, (x2 - x1) / 2);
+        var d = same
+          ? "M" + x1 + " " + y1 + " C" + (x1 + dx) + " " + y1 + " " + (x2 + dx) + " " + y2 + " " + x2 + " " + y2
+          : "M" + x1 + " " + y1 + " C" + (x1 + dx) + " " + y1 + " " + (x2 - dx) + " " + y2 + " " + x2 + " " + y2;
+        var path = svgEl("path", { d: d, fill: "none", stroke: "rgba(2,132,199,.45)", "stroke-width": 1.4 });
+        path.appendChild(svgEl("title", {}, p.name + " → " + shortArtifact(a, 40) + " → " + c.name));
+        path.dataset.p = p.id; path.dataset.c = c.id;
+        edgeLayer.appendChild(path);
+      });
+    });
+  });
+
+  Object.keys(nodes).forEach(function (k) {
+    var n = nodes[k], s = n.s, st = stageOf(s.stage);
+    var g = svgEl("g", { style: "cursor:pointer" });
+    var core = !!s.core_chain;
+    g.appendChild(svgEl("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 8, fill: core ? "#eaf5fe" : "#ffffff", stroke: core ? "#0284c7" : "#c9d4e6", "stroke-width": core ? 1.6 : 1 }));
+    g.appendChild(svgEl("rect", { x: n.x, y: n.y, width: 3, height: n.h, rx: 1.5, fill: st.color }));
+    if (n.h > 46) {
+      g.appendChild(svgEl("line", { x1: n.x + 10, y1: n.y + 46, x2: n.x + n.w - 10, y2: n.y + 46, stroke: "#e8eef7", "stroke-width": 1 }));
+    }
+    g.appendChild(svgEl("text", { x: n.x + 12, y: n.y + 19, fill: "#1e2a3d", "font-size": 12, "font-weight": 600, "font-family": "Cascadia Code, Consolas, monospace" }, fitText(s.name, 226, 12)));
+    g.appendChild(svgEl("text", { x: n.x + 12, y: n.y + 36, fill: "#64748b", "font-size": 10.5 }, fitText(s.purpose || "", 226, 10.5)));
+
+    var chipY = n.y + 50, shown = 0;
+    n.produces.forEach(function (p) {
+      if (shown >= 4) return;
+      g.appendChild(svgEl("text", { x: n.x + 12, y: chipY, fill: "#0369a1", "font-size": 10.5, "font-family": "Cascadia Code, Consolas, monospace" }, fitText("→ " + shortArtifact(p.id, 60), 226, 10.5)));
+      chipY += CHIP; shown++;
+    });
+    n.externals.forEach(function (a) {
+      if (shown >= 4) return;
+      g.appendChild(svgEl("text", { x: n.x + 12, y: chipY, fill: "#b45309", "font-size": 10.5, "font-family": "Cascadia Code, Consolas, monospace" }, fitText("⇐ " + shortArtifact(a, 60), 226, 10.5)));
+      chipY += CHIP; shown++;
+    });
+    var total = n.produces.length + n.externals.length;
+    if (total > shown) {
+      g.appendChild(svgEl("text", { x: n.x + 12, y: chipY, fill: "#8a99b0", "font-size": 10 }, "…… 其余 " + (total - shown) + " 项"));
+    }
+
+    g.addEventListener("click", function () { openScript(s.id, true); });
+    g.addEventListener("mouseenter", function () { highlight(s.id, g); });
+    g.addEventListener("mouseleave", clearHighlight);
+    nodes[k].g = g;
+    svg.appendChild(g);
+  });
+
+  var edgeList = Array.prototype.slice.call(svg.querySelectorAll("path[data-p]"));
+  function highlight(id, g) {
+    Object.keys(nodes).forEach(function (k) { nodes[k].g.style.opacity = 0.18; });
+    g.style.opacity = 1;
+    edgeList.forEach(function (p) {
+      var hot = p.dataset.p === id || p.dataset.c === id;
+      p.setAttribute("stroke", hot ? "rgba(2,132,199,.95)" : "rgba(2,132,199,.06)");
+      p.setAttribute("stroke-width", hot ? 2 : 1.2);
+      if (hot) {
+        [p.dataset.p, p.dataset.c].forEach(function (x) { if (nodes[x]) nodes[x].g.style.opacity = 1; });
+      }
+    });
+  }
+  function clearHighlight() {
+    Object.keys(nodes).forEach(function (k) { nodes[k].g.style.opacity = 1; });
+    edgeList.forEach(function (p) { p.setAttribute("stroke", "rgba(2,132,199,.45)"); p.setAttribute("stroke-width", 1.4); });
+  }
+
+  var sub = document.getElementById("mapSub");
+  var totalFlow = SCRIPTS.filter(function (s) { return (s.input_refs || []).length + (s.output_refs || []).length > 0; }).length;
+  sub.textContent = "当前视图 " + visible.length + " 个脚本 · 全量含数据流脚本 " + totalFlow + " 个 · 悬停脚本高亮上下游，点击查看档案与回放；脚本间无代码级 import，关联全部通过中间产物建立。";
+}
+
+function renderCatalog() {
+  var q = (document.getElementById("search").value || "").trim().toLowerCase();
+  var rows = SCRIPTS.filter(function (s) { return stageAllowed(s.stage); }).filter(function (s) {
+    if (!q) return true;
+    var blob = [s.name, s.purpose, (s.notes || []).join(" "), (s.inputs || []).join(" "), (s.outputs || []).join(" ")].join(" ").toLowerCase();
+    return blob.indexOf(q) >= 0;
+  }).sort(function (a, b) {
+    var sa = STAGES.findIndex(function (x) { return x.id === a.stage; });
+    var sb = STAGES.findIndex(function (x) { return x.id === b.stage; });
+    if (sa !== sb) return sa - sb;
+    return (ORDER[a.status] || 9) - (ORDER[b.status] || 9);
+  });
+  document.getElementById("catCount").textContent = "共 " + rows.length + " 条";
+  var body = document.getElementById("catBody");
+  body.innerHTML = rows.map(function (s) {
+    var st = stageOf(s.stage), rp = replayOf(s);
+    var flow = (s.inputs && s.inputs.length ? "← " + s.inputs.join(" / ") : "") + (s.outputs && s.outputs.length ? "<br/>→ " + s.outputs.join(" / ") : "");
+    return "<tr data-id=\"" + esc(s.id) + "\">" +
+      '<td><div class="snm">' + esc(s.name) + (s.code_public ? ' <span class="badge core">代码</span>' : "") + '</div><div style="color:var(--dim);font-size:10px;font-family:var(--mono)">' + esc(s.id) + "</div></td>" +
+      '<td><div class="sp">' + esc(s.purpose) + "</div></td>" +
+      '<td><span style="color:' + st.color + '">' + esc(st.name) + "</span></td>" +
+      "<td>" + statusBadge(s.status) + "</td>" +
+      '<td style="text-align:center">' + (s.tracked ? '<span style="color:var(--ok)">✓</span>' : '<span style="color:var(--dim)">—</span>') + "</td>" +
+      '<td><div class="flow">' + flow + "</div></td>" +
+      "<td>" + (rp ? (rp.fidelity === "real" ? '<span style="color:var(--ok)">实测</span>' : '<span style="color:var(--warn)">示意</span>') : '<span style="color:var(--dim)">—</span>') + "</td>" +
+      "</tr>";
+  }).join("");
+  body.querySelectorAll("tr").forEach(function (tr) {
+    tr.onclick = function () { openScript(tr.getAttribute("data-id"), true); };
+  });
+}
+
+var currentVoucher = null;
+function renderAudit() {
+  var A = D.audit || { vouchers: [], steps: [] };
+  var sel = document.getElementById("vsel");
+  sel.innerHTML = "";
+  (A.vouchers || []).forEach(function (v, i) {
+    var b = el('<button><div class="v">' + esc(v.id) + '</div><div class="s">' + v.pages + " 页 · " + esc(v.extract_status) + "</div></button>");
+    b.onclick = function () { currentVoucher = v; renderAudit(); };
+    if ((currentVoucher && currentVoucher.id === v.id) || (!currentVoucher && i === 0)) b.classList.add("on");
+    sel.appendChild(b);
+  });
+  if (!currentVoucher && A.vouchers && A.vouchers.length) currentVoucher = A.vouchers[0];
+  var v = currentVoucher;
+  if (!v) return;
+
+  document.getElementById("vsummary").innerHTML =
+    '<div class="kv-list">' +
+    kv("凭证编号", v.id) + kv("拆分产物", v.split_file) + kv("页数", v.pages + " 页") + kv("清单匹配", v.extract_status) + kv("提取报告", v.extract_report || "提取结果报告.xlsx") +
+    "</div>";
+
+  var chain = document.getElementById("chain");
+  chain.innerHTML = "";
+  (A.steps || []).forEach(function (step, idx) {
+    var s = el('<div class="step"></div>');
+    s.innerHTML = '<div class="st">' + esc(step.title) + '</div><div class="sd">' + esc(step.detail) + "</div>";
+    var files = (step.files || []).filter(function (f) { return !f.voucher || f.voucher === v.id; });
+    if (files.length) {
+      var box = el('<div class="files"></div>');
+      files.forEach(function (f) {
+        box.appendChild(el('<div class="file-line"><span class="fi">▤</span><span>' + esc(f.name) + '</span><span class="fs">' + esc(f.meta || "") + "</span></div>"));
+      });
+      s.appendChild(box);
+    }
+    chain.appendChild(s);
+  });
+  document.getElementById("auditNote").textContent = A.note || "";
+}
+function kv(k, v) {
+  return '<div class="kv-item"><div class="kk">' + esc(k) + '</div><div class="vv">' + esc(v) + "</div></div>";
+}
+
+function renderKpi() {
+  var bars = document.getElementById("kpiBars");
+  bars.innerHTML = (D.kpis || []).map(function (k) {
+    var beforeW = k.before_w || 100, afterW = k.after_w || 8;
+    return '<div class="kbar"><div class="khead"><span class="kk">' + esc(k.name) + '</span><span class="ki">' + esc(k.improve) + "</span></div>" +
+      '<div class="krow"><span class="kl">优化前</span><div class="track"><div class="fill before" style="width:' + beforeW + '%"></div></div><span class="kv">' + esc(k.before) + "</span></div>" +
+      '<div class="krow"><span class="kl">优化后</span><div class="track"><div class="fill after" style="width:' + afterW + '%"></div></div><span class="kv">' + esc(k.after) + "</span></div>" +
+      (k.basis ? '<div class="kbasis">推算：' + esc(k.basis) + "</div>" : "") + "</div>";
+  }).join("");
+  document.getElementById("kpiNote").textContent = D.kpiNote || "";
+}
+
+function openScript(id, showReplay) {
+  var s = scriptById(id); if (!s) return;
+  var st = stageOf(s.stage), rp = replayOf(s);
+  document.getElementById("drTitle").textContent = s.name;
+  document.getElementById("drPath").textContent = s.id;
+  var body = document.getElementById("drBody");
+  var html = "";
+  html += '<div class="sec"><div class="st">功能定位</div><div class="purpose">' + esc(s.purpose) + "</div>" +
+    '<div class="badges">' + statusBadge(s.status) + '<span class="badge" style="color:' + st.color + ';border-color:' + st.color + '55">' + esc(st.name) + "阶段</span>" +
+    (s.tracked ? '<span class="badge core">核心</span>' : "") + (s.code_public ? '<span class="badge core">代码已公开</span>' : "") + fidelityBadge(rp) +
+    (s.core_chain ? '<span class="badge active">核心链路</span>' : "") + "</div></div>";
+
+  if (rp) {
+    html += '<div class="sec"><div class="st">运行回放</div>' +
+      '<div class="fidelity' + (rp.fidelity === "sim" ? " sim" : "") + '">' +
+      '<div class="ft">' + (rp.fidelity === "real" ? '<span style="color:var(--ok)">● 实测</span>' : '<span style="color:var(--warn)">● 示意</span>') +
+      "<span style=\"color:var(--muted);font-weight:400\">" + esc(rp.title) + "</span></div>" +
+      '<div class="fm">' + esc(rp.note) + (rp.duration_s != null ? " · 耗时 " + rp.duration_s + "s" : "") +
+      (rp.exit_code != null ? " · 退出码 " + rp.exit_code : "") + "</div></div>" +
+      '<div class="kv-list">' + kv("输入数据", (rp.inputs || []).join("，")) + "</div>" +
+      '<div class="logbox" id="logbox"></div>' +
+      '<div class="log-actions"><button class="btn" id="replayBtn">重新播放</button><button class="btn" id="logCopy">复制日志</button></div>';
+  }
+
+  html += '<div class="sec"><div class="st">数据流</div><div class="kv-list">' +
+    '<div class="kv-item"><div class="kk">输入</div><ul>' + (s.inputs || []).map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></div>" +
+    '<div class="kv-item"><div class="kk">输出</div><ul>' + (s.outputs || []).map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></div>" +
+    "</div></div>";
+
+  if (s.notes && s.notes.length) {
+    html += '<div class="sec"><div class="st">实现要点 / 已知坑</div><ul class="notes">' + s.notes.map(function (n) { return "<li>" + esc(n) + "</li>"; }).join("") + "</ul></div>";
+  }
+  if (s.deps && s.deps.length) {
+    html += '<div class="sec"><div class="st">依赖</div><div class="badges">' + s.deps.map(function (d) { return '<span class="badge doc">' + esc(d) + "</span>"; }).join("") + "</div></div>";
+  }
+  if (s.interactive && s.interactive.length) {
+    html += '<div class="sec"><div class="st">交互方式</div><div class="badges">' + s.interactive.map(function (d) { return '<span class="badge sim">' + esc(d) + "</span>"; }).join("") + "</div></div>";
+  }
+  var lin = (D.lineages || []).filter(function (l) { return l.members.indexOf(s.id) >= 0; })[0];
+  if (lin || s.supersedes || s.superseded_by) {
+    html += '<div class="sec"><div class="st">版本谱系</div>';
+    if (lin) html += '<div class="kv-item"><div class="kk">' + esc(lin.family) + '</div><div style="color:var(--muted);font-size:11.5px;margin-bottom:4px">' + esc(lin.desc) + "</div><ul>" +
+      lin.members.map(function (m) { return "<li" + (m === s.id ? ' style="color:var(--accent)"' : "") + ">" + (m === s.id ? "▸ " : "") + esc(m) + "</li>"; }).join("") + "</ul></div>";
+    if (s.supersedes) html += '<div class="kv-item" style="margin-top:6px"><div class="kk">替代了</div><div class="vv">' + esc(s.supersedes) + "</div></div>";
+    if (s.superseded_by) html += '<div class="kv-item" style="margin-top:6px"><div class="kk">已被替代</div><div class="vv">' + esc(s.superseded_by) + "</div></div>";
+    html += "</div>";
+  }
+
+  if (rp && rp.outputs && rp.outputs.length) {
+    html += '<div class="sec"><div class="st">产物快照（' + rp.outputs.length + '）</div>';
+    rp.outputs.forEach(function (o) {
+      html += '<div class="out-card"><div class="out-head">▤ <span>' + esc(o.path) + '</span><span class="of">' + esc(o.kind) + " · " + fmtBytes(o.bytes) + "</span></div>";
+      html += '<div class="out-prev">' + previewHtml(o) + "</div></div>";
+    });
+    html += "</div>";
+  }
+
+  body.innerHTML = html;
+  openDrawer();
+  if (rp && showReplay) startTypewriter(rp.log || "");
+  else if (rp) startTypewriter(rp.log || "");
+}
+function previewHtml(o) {
+  var pv = o.preview;
+  if (!pv) return '<div class="pv-note">（无预览）</div>';
+  if (o.kind === "xlsx" && pv.preview) {
+    var first = Object.keys(pv.preview)[0];
+    var rows = pv.preview[first] || [];
+    return '<div class="pv-note">工作表：' + esc((pv.sheets || []).join(" / ")) + "</div>" +
+      '<table class="pv-table">' + rows.map(function (r, i) {
+        return "<tr>" + r.map(function (c) { return (i === 0 ? "<th>" : "<td>") + esc(c) + (i === 0 ? "</th>" : "</td>"); }).join("") + "</tr>";
+      }).join("") + "</table>";
+  }
+  if (o.kind === "pdf" && pv) {
+    return '<div class="pv-note">页数：' + pv.pages + '</div><div class="pv-text">' + esc(pv.first_page_text || "") + "</div>";
+  }
+  if (o.kind === "text" && typeof pv === "string") {
+    return '<div class="pv-text">' + esc(pv.slice(0, 700)) + "</div>";
+  }
+  return '<div class="pv-note">（无预览）</div>';
+}
+
+var typeTimer = null;
+function startTypewriter(log) {
+  var box = document.getElementById("logbox");
+  if (!box) return;
+  if (typeTimer) clearInterval(typeTimer);
+  var lines = String(log).split("\n");
+  var i = 0, buf = [];
+  box.textContent = "";
+  typeTimer = setInterval(function () {
+    if (i >= lines.length) { clearInterval(typeTimer); typeTimer = null; return; }
+    var line = lines[i++];
+    var cls = /失败|错误|Error|Traceback|FAILED|!!!/.test(line) ? "err" : /警告|WARN|警告:/.test(line) ? "warn" : /成功|完成|OK|已创建|已保存|已生成/.test(line) ? "ok" : "";
+    buf.push(cls ? '<span class="' + cls + '">' + esc(line) + "</span>" : esc(line));
+    box.innerHTML = buf.join("\n");
+    box.scrollTop = box.scrollHeight;
+  }, 45);
+  var btn = document.getElementById("replayBtn");
+  if (btn) btn.onclick = function () { startTypewriter(log); };
+  var cp = document.getElementById("logCopy");
+  if (cp) cp.onclick = function () {
+    navigator.clipboard && navigator.clipboard.writeText(String(log));
+    cp.textContent = "已复制";
+    setTimeout(function () { cp.textContent = "复制日志"; }, 1200);
+  };
+}
+
+function openArtifact(id) {
+  var a = ARTIFACTS[id];
+  document.getElementById("drTitle").textContent = a ? a.name : id;
+  document.getElementById("drPath").textContent = "artifact: " + id;
+  var producers = [], consumers = [];
+  SCRIPTS.forEach(function (s) {
+    if ((s.output_refs || []).indexOf(id) >= 0) producers.push(s);
+    if ((s.input_refs || []).indexOf(id) >= 0) consumers.push(s);
+  });
+  var html = '<div class="sec"><div class="st">产物说明</div><div class="purpose">' +
+    esc(a ? (a.kind === "folder" ? "目录集合" : a.kind === "clipboard" ? "剪贴板数据" : a.kind === "external" ? "外部系统数据" : "文件产物") : "") + " · " + esc(id) + "</div></div>";
+  html += '<div class="sec"><div class="st">生产方（' + producers.length + '）</div><div class="kv-list">' +
+    producers.map(linkItem).join("") + "</div></div>";
+  html += '<div class="sec"><div class="st">消费方（' + consumers.length + '）</div><div class="kv-list">' +
+    consumers.map(linkItem).join("") + "</div></div>";
+  document.getElementById("drBody").innerHTML = html;
+  openDrawer();
+}
+function linkItem(s) {
+  return '<div class="kv-item link" data-goto="' + esc(s.id) + '"><div class="vv">' + esc(s.name) + '</div><div class="kk">' + esc(s.purpose) + "</div></div>";
+}
+document.getElementById("drBody").addEventListener("click", function (ev) {
+  var t = ev.target.closest("[data-goto]");
+  if (t) openScript(t.getAttribute("data-goto"), true);
+});
+
+function openDrawer() { document.getElementById("drawer").classList.add("on"); }
+document.getElementById("drClose").onclick = function () { document.getElementById("drawer").classList.remove("on"); };
+document.addEventListener("keydown", function (e) { if (e.key === "Escape") document.getElementById("drClose").click(); });
+
+function switchView(name) {
+  document.querySelectorAll("nav.tabs button").forEach(function (b) { b.classList.toggle("on", b.dataset.view === name); });
+  document.querySelectorAll("section.view").forEach(function (v) { v.classList.toggle("on", v.id === "view-" + name); });
+  if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+  if (name === "map") renderMap();
+}
+document.getElementById("tabs").addEventListener("click", function (e) {
+  var b = e.target.closest("button");
+  if (b) switchView(b.dataset.view);
+});
+document.getElementById("search").addEventListener("input", renderCatalog);
+
+(function init() {
+  renderTop();
+  renderPipeline();
+  renderStageChips();
+  var avc = document.getElementById("allVerChip");
+  avc.onclick = function () {
+    showAllVersions = !showAllVersions;
+    avc.classList.toggle("on", showAllVersions);
+    renderMap();
+  };
+  renderMap();
+  renderCatalog();
+  renderAudit();
+  renderKpi();
+  var h = (location.hash || "#overview").slice(1);
+  switchView(["overview", "map", "audit", "kpi"].indexOf(h) >= 0 ? h : "overview");
+  var qs = new URLSearchParams(location.search);
+  if (qs.get("open")) setTimeout(function () { openScript(qs.get("open"), true); }, 60);
+})();
+</script>
+</body>
+</html>

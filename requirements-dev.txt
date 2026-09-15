@@ -1,0 +1,13 @@
+# ============================================================
+# 公开层开发/测试依赖（CI 使用）
+# 仅覆盖公开的 4 个脚本 + 假数据生成器 + 测试，不含本机回放所需的
+# easyofd / selenium / webdriver-manager / pyperclip 等
+# 安装：pip install -r requirements-dev.txt
+# ============================================================
+
+openpyxl>=3.1.0
+pandas>=2.0.0
+pypdf>=3.0.0
+PyMuPDF>=1.23.0                # 对应 import fitz
+Pillow>=9.0.0
+pytest>=8.0.0

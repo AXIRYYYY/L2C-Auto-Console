@@ -1,0 +1,18 @@
+{
+  "slug": "web_downloader",
+  "title": "网银/网页文件下载（实验）",
+  "script": "integration/web_file_downloader_v2.py",
+  "stage": "experiment",
+  "fidelity": "simulated",
+  "mode": "simulated",
+  "note": "Selenium 需要真实网页与 Edge 会话，未接入生产链路；日志为示意",
+  "inputs": [
+    "人工输入的 https URL"
+  ],
+  "started_at": "2026-09-15 22:36:27",
+  "dialogs": [],
+  "outputs": [],
+  "log": "请输入安全的网页URL（https://开头）: https://example-bank.example.com/statement\n[Selenium] 启动 Edge 驱动（禁用 SSL 校验，仅测试环境）\n[Selenium] 打开页面完成，定位「下载」元素 ×3\n  - 点击第 1 个「下载」-> 已保存 银行流水_202601.pdf\n  - 点击第 2 个「下载」-> 已保存 银行流水_202602.pdf\n  - 点击第 3 个「下载」-> 已保存 回单明细.xlsx\n下载目录：~/Downloads/Secure_Downloads\n[说明] 实验性功能：规划用于替代畅捷通/网银的人工下载环节",
+  "exit_code": null,
+  "duration_s": null
+}

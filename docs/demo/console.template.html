@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L2C-Auto-Console · 业财流转自动化控制台</title>
+<style>
+:root{
+  --bg:#f4f6fa; --bg2:#edf1f7; --panel:#ffffff; --panel2:#f5f8fd;
+  --line:#dfe6f0; --line2:#c9d4e6;
+  --text:#1e2a3d; --muted:#5c6c85; --dim:#8a99b0;
+  --accent:#0284c7; --accent2:#06b6d4;
+  --ok:#059669; --warn:#b45309; --danger:#dc2626; --purple:#7c3aed; --gray:#64748b;
+  --mono:"Cascadia Code","JetBrains Mono",Consolas,"Courier New",monospace;
+  --sans:"Segoe UI","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.55;overflow-x:hidden}
+::selection{background:rgba(2,132,199,.22)}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#c6d2e2;border-radius:5px}
+::-webkit-scrollbar-track{background:transparent}
+
+#err{position:fixed;left:0;right:0;top:0;z-index:999;background:#7f1d1d;color:#fff;padding:8px 16px;font-family:var(--mono);font-size:12px;display:none;white-space:pre-wrap}
+
+header.top{position:sticky;top:0;z-index:60;background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(255,255,255,.92));backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top-inner{display:flex;align-items:center;gap:26px;padding:12px 26px}
+.brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+.brand .logo{font-family:var(--mono);font-weight:700;font-size:17px;letter-spacing:.5px;color:var(--text)}
+.brand .logo b{color:var(--accent)}
+.brand .sub{color:var(--muted);font-size:12px}
+nav.tabs{display:flex;gap:4px}
+nav.tabs button{background:transparent;border:1px solid transparent;color:var(--muted);padding:6px 15px;border-radius:7px;cursor:pointer;font-size:13px;font-family:var(--sans)}
+nav.tabs button:hover{color:var(--text);background:var(--panel)}
+nav.tabs button.on{color:var(--accent);background:#e9f5fd;border-color:#bcdcf3}
+.top-meta{margin-left:auto;display:flex;gap:18px;color:var(--dim);font-size:12px;white-space:nowrap}
+.top-meta b{color:var(--muted);font-family:var(--mono)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+
+main{padding:22px 26px 60px;max-width:1680px;margin:0 auto}
+section.view{display:none}
+section.view.on{display:block}
+h2.vh{font-size:15px;font-weight:600;margin-bottom:4px}
+p.vsub{color:var(--muted);font-size:12px;margin-bottom:18px}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden}
+.stat::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.7}
+.stat .n{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--text)}
+.stat .n small{font-size:13px;color:var(--muted);font-weight:400;margin-left:4px}
+.stat .l{color:var(--muted);font-size:12px;margin-top:2px}
+.stat.g::after{background:var(--ok)} .stat.p::after{background:var(--purple)} .stat.w::after{background:var(--warn)}
+
+.pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.pipe-col{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px;min-height:220px}
+.pipe-head{border-bottom:1px dashed var(--line2);padding-bottom:8px;margin-bottom:10px}
+.pipe-head .t{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.pipe-head .t .ic{font-family:var(--mono);color:var(--accent)}
+.pipe-head .d{color:var(--dim);font-size:11px;margin-top:3px;line-height:1.45}
+.card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gray);border-radius:9px;padding:10px 12px;margin-bottom:9px;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}
+.card:hover{transform:translateY(-1px);border-color:var(--line2);background:var(--panel2)}
+.card .nm{font-size:13px;font-weight:600;font-family:var(--mono);word-break:break-all}
+.card .pp{color:var(--muted);font-size:11.5px;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.badge{font-size:10.5px;padding:1px 7px;border-radius:20px;border:1px solid;white-space:nowrap;line-height:1.6}
+.badge.real{color:var(--ok);border-color:rgba(5,150,105,.4);background:rgba(5,150,105,.08)}
+.badge.sim{color:var(--warn);border-color:rgba(180,83,9,.4);background:rgba(180,83,9,.08)}
+.badge.doc{color:var(--dim);border-color:var(--line2);background:transparent}
+.badge.core{color:#047857;border-color:rgba(4,120,87,.35);background:rgba(4,120,87,.07)}
+.badge.active{color:var(--accent);border-color:rgba(2,132,199,.35);background:rgba(2,132,199,.07)}
+.badge.wip{color:var(--warn);border-color:rgba(180,83,9,.35);background:rgba(180,83,9,.07)}
+.badge.broken{color:var(--danger);border-color:rgba(220,38,38,.4);background:rgba(220,38,38,.08)}
+.badge.legacy{color:var(--gray);border-color:#aebacd;background:rgba(100,116,139,.08)}
+.badge.dead{color:#64748b;border-color:#b6c2d4;background:rgba(100,116,139,.06)}
+.badge.experiment{color:var(--purple);border-color:rgba(124,58,237,.35);background:rgba(124,58,237,.07)}
+
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:4px 12px;border-radius:20px;font-size:12px;cursor:pointer;user-select:none}
+.chip:hover{border-color:var(--line2);color:var(--text)}
+.chip.on{background:#e9f5fd;border-color:var(--accent);color:var(--accent)}
+.toolbar input[type=search]{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:5px 12px;border-radius:7px;font-size:12.5px;width:250px;outline:none;font-family:var(--sans)}
+.toolbar input[type=search]:focus{border-color:var(--accent)}
+.toolbar select{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:5px 10px;border-radius:7px;font-size:12.5px;outline:none}
+.legend{margin-left:auto;display:flex;gap:14px;color:var(--dim);font-size:11.5px;align-items:center}
+.legend i{display:inline-block;width:16px;height:0;border-top:2px solid var(--accent);vertical-align:middle;margin-right:5px}
+.legend i.con{border-top:2px dashed var(--purple)}
+.legend i.ext{border-top:2px dotted var(--warn)}
+
+.map-wrap{background:var(--bg2);border:1px solid var(--line);border-radius:12px;overflow:auto;margin-bottom:22px}
+#mapSvg{display:block}
+
+.catalog{background:var(--bg2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{position:sticky;top:0;background:#f0f4fa;text-align:left;padding:9px 12px;color:var(--muted);font-weight:600;font-size:11.5px;border-bottom:1px solid var(--line2);white-space:nowrap;z-index:2}
+tbody td{padding:8px 12px;border-bottom:1px solid #eaeff7;vertical-align:top}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#f7fafd}
+td .snm{font-family:var(--mono);font-size:12px;color:var(--text);word-break:break-all}
+td .sp{color:var(--muted);font-size:11.5px;max-width:420px}
+td .flow{color:var(--dim);font-family:var(--mono);font-size:11px;max-width:330px;word-break:break-all}
+.sect-t{font-size:13px;font-weight:600;margin:26px 0 10px;color:var(--text);display:flex;align-items:center;gap:8px}
+.sect-t .line{flex:1;height:1px;background:var(--line)}
+
+.audit-grid{display:grid;grid-template-columns:1fr 1.35fr;gap:16px}
+.panel{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:16px}
+.panel h3{font-size:13px;font-weight:600;margin-bottom:12px;color:#fff}
+.vsel{display:flex;gap:8px;margin-bottom:14px}
+.vsel button{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--text);cursor:pointer;text-align:left;font-family:var(--mono)}
+.vsel button.on{border-color:var(--accent);background:#e9f5fd}
+.vsel button .v{font-size:15px;font-weight:700;color:var(--text)}
+.vsel button .s{color:var(--muted);font-size:11px;margin-top:2px}
+.chain{position:relative;padding-left:26px}
+.chain::before{content:"";position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,var(--accent),rgba(56,189,248,.06))}
+.step{position:relative;margin-bottom:16px}
+.step::before{content:"";position:absolute;left:-24px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--panel);border:2px solid var(--accent);box-shadow:0 0 8px rgba(56,189,248,.5)}
+.step .st{font-weight:600;font-size:12.5px}
+.step .sd{color:var(--muted);font-size:11.5px;margin-top:2px}
+.step .files{margin-top:7px;display:flex;flex-direction:column;gap:4px}
+.file-line{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 9px}
+.file-line .fi{color:var(--accent)}
+.file-line .fs{margin-left:auto;color:var(--dim);font-size:11px;white-space:nowrap}
+.audit-note{color:var(--dim);font-size:11.5px;margin-top:12px;line-height:1.6}
+
+.kpi-bars{display:flex;flex-direction:column;gap:16px}
+.kbar .khead{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px}
+.kbar .khead .kk{font-weight:600}
+.kbar .khead .ki{font-family:var(--mono);color:var(--ok);font-weight:700}
+.krow{display:grid;grid-template-columns:110px 1fr 170px;gap:10px;align-items:center;font-size:12px;margin-bottom:5px}
+.krow .kl{color:var(--muted);text-align:right}
+.krow .track{background:#e8edf5;border-radius:6px;height:18px;overflow:hidden;display:flex}
+.krow .fill{height:100%;border-radius:6px}
+.krow .fill.before{background:linear-gradient(90deg,#a9b6ca,#c3cedd)}
+.krow .fill.after{background:linear-gradient(90deg,#0284c7,#22d3ee)}
+.krow .kv{font-family:var(--mono);color:var(--text);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbasis{color:var(--dim);font-size:11px;line-height:1.55;margin:2px 0 12px 120px}
+.kpi-note{margin-top:20px;color:var(--dim);font-size:11.5px;border-top:1px dashed var(--line2);padding-top:12px;line-height:1.7}
+
+#drawer{position:fixed;top:0;right:-520px;bottom:0;width:500px;background:#ffffff;border-left:1px solid var(--line2);z-index:80;transition:right .22s ease;display:flex;flex-direction:column;box-shadow:-24px 0 60px rgba(15,23,42,.18)}
+#drawer.on{right:0}
+.dr-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:12px}
+.dr-head .dh-t{flex:1}
+.dr-head .dh-t h3{font-size:15px;font-weight:700;word-break:break-all}
+.dr-head .dh-t .p{font-family:var(--mono);color:var(--dim);font-size:11px;margin-top:3px;word-break:break-all}
+.dr-close{background:transparent;border:1px solid var(--line2);color:var(--muted);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:14px;line-height:1}
+.dr-close:hover{color:#fff;border-color:var(--accent)}
+.dr-body{flex:1;overflow-y:auto;padding:16px 20px 40px}
+.sec{margin-bottom:18px}
+.sec .st{font-size:11px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px}
+.sec .purpose{font-size:13px;line-height:1.65}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.kv-list{display:flex;flex-direction:column;gap:6px}
+.kv-item{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:12px}
+.kv-item .kk{color:var(--dim);font-size:10.5px;margin-bottom:2px}
+.kv-item .vv{font-family:var(--mono);font-size:11.5px;word-break:break-all}
+.kv-item ul{margin:0;padding-left:16px}
+.kv-item li{margin:1px 0;font-family:var(--mono);font-size:11.5px}
+.notes{color:var(--muted);font-size:12px;line-height:1.7}
+.notes li{margin-bottom:3px}
+.link{color:var(--accent);cursor:pointer;text-decoration:none}
+.link:hover{text-decoration:underline}
+.logbox{background:#f8fafd;border:1px solid var(--line2);border-radius:9px;padding:12px;font-family:var(--mono);font-size:11.5px;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow-y:auto;color:#334155;line-height:1.6}
+.logbox .ok{color:var(--ok)} .logbox .warn{color:var(--warn)} .logbox .err{color:var(--danger)}
+.log-actions{display:flex;gap:8px;margin-top:8px}
+.btn{background:var(--panel);border:1px solid var(--line2);color:var(--text);border-radius:7px;padding:5px 13px;cursor:pointer;font-size:12px;font-family:var(--sans)}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:rgba(56,189,248,.14);border-color:var(--accent);color:#fff}
+.out-card{background:var(--panel);border:1px solid var(--line);border-radius:9px;margin-bottom:10px;overflow:hidden}
+.out-head{display:flex;align-items:center;gap:8px;padding:8px 11px;cursor:pointer;font-family:var(--mono);font-size:11.5px}
+.out-head:hover{background:var(--panel2)}
+.out-head .of{margin-left:auto;color:var(--dim);white-space:nowrap;font-size:11px}
+.out-prev{padding:0 11px 11px}
+.pv-table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)}
+.pv-table td,.pv-table th{border:1px solid #dbe3ef;padding:3px 7px;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-table th{background:#f0f4fa;color:var(--muted)}
+.pv-note{color:var(--dim);font-size:11px;font-family:var(--mono)}
+.pv-text{background:#f8fafd;border:1px solid var(--line);border-radius:6px;padding:8px;font-family:var(--mono);font-size:11px;white-space:pre-wrap;max-height:180px;overflow:auto;color:#475569}
+
+.fidelity{border:1px solid var(--line2);border-radius:10px;padding:12px 14px;margin-bottom:14px;background:linear-gradient(180deg,rgba(5,150,105,.07),transparent)}
+.fidelity.sim{background:linear-gradient(180deg,rgba(180,83,9,.07),transparent)}
+.fidelity .ft{display:flex;align-items:center;gap:10px;font-weight:600;font-size:12.5px}
+.fidelity .fm{color:var(--muted);font-size:11.5px;margin-top:6px;line-height:1.6}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:1400px){.pipeline{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div id="err"></div>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <div class="logo">L2C<b>-</b>AUTO<b>-</b>CONSOLE</div>
+      <div class="sub">业财流转自动化控制台 · 功能关联 · 回放演示</div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button data-view="overview" class="on">总览</button>
+      <button data-view="map">功能地图</button>
+      <button data-view="audit">审计追溯</button>
+      <button data-view="kpi">KPI</button>
+    </nav>
+    <div class="top-meta" id="topMeta"></div>
+  </div>
+</header>
+
+<main>
+  <section class="view on" id="view-overview">
+    <div class="stats" id="stats"></div>
+    <h2 class="vh">业务流水线 · 模块总览</h2>
+    <p class="vsub">点击任意模块卡片查看功能档案；带「实测回放」标记的模块可播放真实脚本运行日志与产物快照；业务脚本实现未公开，回放为真实执行的采集快照。</p>
+    <div class="pipeline" id="pipeline"></div>
+  </section>
+
+  <section class="view" id="view-map">
+    <h2 class="vh">数据流功能地图</h2>
+    <p class="vsub" id="mapSub"></p>
+    <div class="toolbar">
+      <div class="chips" id="stageChips"></div>
+      <span class="chip" id="allVerChip">全部版本（含历史）</span>
+      <input type="search" id="search" placeholder="搜索脚本 / 用途 / 产物…">
+      <div class="legend">
+        <span><i></i>脚本间数据流（悬停查看中间产物）</span>
+        <span><i class="ext"></i>外部数据源输入 ⇐</span>
+      </div>
+    </div>
+    <div class="map-wrap"><svg id="mapSvg"></svg></div>
+    <div class="sect-t"><span>脚本全目录</span><span class="line"></span><span style="color:var(--dim);font-weight:400;font-size:12px" id="catCount"></span></div>
+    <div class="catalog">
+      <table>
+        <thead><tr><th style="width:200px">脚本</th><th>用途</th><th style="width:64px">阶段</th><th style="width:86px">状态</th><th style="width:52px">核心</th><th>数据流</th><th style="width:74px">回放</th></tr></thead>
+        <tbody id="catBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="view" id="view-audit">
+    <h2 class="vh">审计追溯 · 一笔凭证的证据链</h2>
+    <p class="vsub">从整本记账凭证到审计提取，全链路中间产物可追溯（基于 sample_data 生成假数据的真实现场回放）。</p>
+    <div class="audit-grid">
+      <div class="panel">
+        <h3>凭证选择</h3>
+        <div class="vsel" id="vsel"></div>
+        <div id="vsummary"></div>
+      </div>
+      <div class="panel">
+        <h3>证据链</h3>
+        <div class="chain" id="chain"></div>
+        <div class="audit-note" id="auditNote"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-kpi">
+    <h2 class="vh">效能指标</h2>
+    <p class="vsub">口径来自 README 的业务记录，本演示作为示意展示（非实测基准）。</p>
+    <div class="panel"><div class="kpi-bars" id="kpiBars"></div><div class="kpi-note" id="kpiNote"></div></div>
+  </section>
+</main>
+
+<aside id="drawer">
+  <div class="dr-head">
+    <div class="dh-t"><h3 id="drTitle"></h3><div class="p" id="drPath"></div></div>
+    <button class="dr-close" id="drClose">✕</button>
+  </div>
+  <div class="dr-body" id="drBody"></div>
+</aside>
+
+<script>
+window.__CONSOLE_DATA__ = /*__DATA__*/ null;
+</script>
+<script>
+"use strict";
+window.onerror = function (msg, src, line) {
+  var el = document.getElementById("err");
+  el.style.display = "block";
+  el.textContent = "页面脚本错误: " + msg + " @" + (src || "") + ":" + line;
+};
+var D = window.__CONSOLE_DATA__ || {};
+var STAGES = D.stages || [];
+var STATUSES = D.statuses || {};
+var ARTIFACTS = D.artifacts || {};
+var SCRIPTS = D.scripts || [];
+var REPLAYS = D.replays || {};
+var SCRIPT_REPLAY = D.scriptReplay || {};
+var STAGE_MAP = {}; STAGES.forEach(function (s) { STAGE_MAP[s.id] = s; });
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function fmtBytes(n) {
+  if (n == null) return "";
+  if (n < 1024) return n + " B";
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+  return (n / 1024 / 1024).toFixed(2) + " MB";
+}
+function el(html) { var t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
+function stageOf(id) { return STAGE_MAP[id] || { name: id, color: "#64748b", icon: "?" }; }
+function statusBadge(st) {
+  var s = STATUSES[st] || { label: st, color: "#64748b" };
+  return '<span class="badge ' + esc(st) + '">' + esc(s.label) + "</span>";
+}
+function scriptById(id) { for (var i = 0; i < SCRIPTS.length; i++) if (SCRIPTS[i].id === id) return SCRIPTS[i]; return null; }
+function replayOf(script) {
+  var slug = SCRIPT_REPLAY[script.id];
+  return slug && REPLAYS[slug] ? REPLAYS[slug] : null;
+}
+function fidelityBadge(rp) {
+  if (!rp) return '<span class="badge doc">功能档案</span>';
+  return rp.fidelity === "real"
+    ? '<span class="badge real">实测回放</span>'
+    : '<span class="badge sim">示意回放</span>';
+}
+
+function renderTop() {
+  var real = 0, sim = 0;
+  Object.keys(REPLAYS).forEach(function (k) { REPLAYS[k].fidelity === "real" ? real++ : sim++; });
+  document.getElementById("topMeta").innerHTML =
+    '<span><span class="dot ok"></span>演示数据（生成假数据）</span>' +
+    '<span>脚本 <b>' + SCRIPTS.length + '</b></span>' +
+    '<span>核心脚本 <b>' + SCRIPTS.filter(function (s) { return s.tracked; }).length + '</b></span>' +
+    '<span>实测回放 <b>' + real + '</b> · 示意 <b>' + sim + '</b></span>';
+  document.getElementById("stats").innerHTML = [
+    { n: SCRIPTS.length, l: "脚本总数（含历史版本）", c: "" },
+    { n: SCRIPTS.filter(function (s) { return s.tracked; }).length, l: "核心脚本（未公开）", c: "g" },
+    { n: (D.lineages || []).length, l: "版本谱系（家族）", c: "p" },
+    { n: real, l: "本轮真实执行回放", c: "w" }
+  ].map(function (x) {
+    return '<div class="stat ' + x.c + '"><div class="n">' + x.n + '<small>项</small></div><div class="l">' + x.l + "</div></div>";
+  }).join("");
+}
+
+var ORDER = { core: 0, active: 1, wip: 2, experiment: 3, broken: 4, legacy: 5, dead: 6 };
+function renderPipeline() {
+  var seen = {};
+  var wrap = document.getElementById("pipeline");
+  STAGES.forEach(function (st) {
+    var items = SCRIPTS.filter(function (s) { return s.stage === st.id && replayOf(s); })
+      .sort(function (a, b) { return (ORDER[a.status] || 9) - (ORDER[b.status] || 9); });
+    var coreItems = SCRIPTS.filter(function (s) { return s.stage === st.id && !replayOf(s) && (s.status === "core" || s.status === "active"); })
+      .slice(0, 4);
+    var col = el('<div class="pipe-col"></div>');
+    col.appendChild(el('<div class="pipe-head"><div class="t"><span class="ic">' + st.icon + "</span>" + esc(st.name) + '</div><div class="d">' + esc(st.desc) + "</div></div>"));
+    items.concat(coreItems).forEach(function (s) {
+      var rp = replayOf(s);
+      var card = el('<div class="card" style="border-left-color:' + st.color + '"></div>');
+      card.innerHTML =
+        '<div class="nm">' + esc(s.name) + "</div>" +
+        '<div class="pp">' + esc(s.purpose) + "</div>" +
+        '<div class="meta">' + statusBadge(s.status) + fidelityBadge(rp) +
+        (s.tracked ? '<span class="badge core">核心</span>' : "") + "</div>";
+      card.onclick = function () { openScript(s.id, !!rp); };
+      col.appendChild(card);
+      seen[s.id] = 1;
+    });
+    var rest = SCRIPTS.filter(function (s) { return s.stage === st.id && !seen[s.id]; }).length;
+    if (rest) {
+      var more = el('<div class="card" style="border-left-color:#aebacd;opacity:.9"></div>');
+      more.innerHTML = '<div class="nm" style="color:var(--muted);font-family:var(--sans)">其余 ' + rest + ' 个脚本（历史版本 / 内部工具）</div><div class="pp">在「功能地图 → 脚本全目录」中查看完整清单</div>';
+      more.onclick = function () { switchView("map"); };
+      col.appendChild(more);
+    }
+    wrap.appendChild(col);
+  });
+}
+
+var filterStages = {};
+function renderStageChips() {
+  var chips = document.getElementById("stageChips");
+  chips.appendChild(makeChip("全部阶段", null, true));
+  STAGES.forEach(function (st) {
+    chips.appendChild(makeChip(st.name, st.id, false));
+  });
+  function makeChip(label, id, on) {
+    var c = el('<span class="chip' + (on ? " on" : "") + '">' + esc(label) + "</span>");
+    if (id) c.style.borderColor = on ? "" : "var(--line)";
+    c.onclick = function () {
+      if (id === null) { filterStages = {}; chips.querySelectorAll(".chip").forEach(function (x, i) { x.classList.toggle("on", i === 0); }); }
+      else { filterStages[id] = !filterStages[id]; c.classList.toggle("on", filterStages[id]); chips.firstChild.classList.remove("on"); }
+      renderMap(); renderCatalog();
+    };
+    return c;
+  }
+}
+function stageAllowed(st) {
+  var any = Object.keys(filterStages).some(function (k) { return filterStages[k]; });
+  return !any || !!filterStages[st];
+}
+
+var svgNS = "http://www.w3.org/2000/svg";
+var showAllVersions = false;
+
+function svgEl(tag, attrs, text) {
+  var e = document.createElementNS(svgNS, tag);
+  for (var k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  return e;
+}
+function shortArtifact(id, max) {
+  var n = ARTIFACTS[id] ? ARTIFACTS[id].name : id;
+  max = max || 24;
+  return n.length > max ? n.slice(0, max - 1) + "…" : n;
+}
+function textWidth(s, fontSize) {
+  var w = 0;
+  for (var i = 0; i < s.length; i++) {
+    var c = s.charCodeAt(i);
+    var wide = (c >= 0x2e80 && c <= 0x9fff) || (c >= 0xf900 && c <= 0xfaff) || (c >= 0xff00 && c <= 0xffef);
+    w += wide ? fontSize : fontSize * 0.62;
+  }
+  return w;
+}
+function fitText(s, maxPx, fontSize) {
+  if (textWidth(s, fontSize) <= maxPx) return s;
+  var out = "";
+  for (var i = 0; i < s.length; i++) {
+    if (textWidth(out + s[i] + "…", fontSize) > maxPx) break;
+    out += s[i];
+  }
+  return out + "…";
+}
+function producersOf(a) { return SCRIPTS.filter(function (s) { return (s.output_refs || []).indexOf(a) >= 0; }); }
+function consumersOf(a) { return SCRIPTS.filter(function (s) { return (s.input_refs || []).indexOf(a) >= 0; }); }
+
+function mapVisibleScripts() {
+  return SCRIPTS.filter(function (s) {
+    var refs = (s.input_refs || []).length + (s.output_refs || []).length;
+    if (!refs || !stageAllowed(s.stage)) return false;
+    if (showAllVersions) return true;
+    return (D.mapDefault || []).indexOf(s.id) >= 0;
+  });
+}
+
+function renderMap() {
+  var svg = document.getElementById("mapSvg");
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  var visible = mapVisibleScripts();
+  var vset = {};
+  visible.forEach(function (s) { vset[s.id] = 1; });
+
+  var byStage = {};
+  STAGES.forEach(function (st) { byStage[st.id] = []; });
+  visible.forEach(function (s) { byStage[s.stage].push(s); });
+  STAGES.forEach(function (st) {
+    byStage[st.id].sort(function (a, b) {
+      var ao = (a.core_chain ? 0 : 1) * 100 + (ORDER[a.status] || 9);
+      var bo = (b.core_chain ? 0 : 1) * 100 + (ORDER[b.status] || 9);
+      return ao - bo;
+    });
+  });
+
+  var CARDW = 254, CHIP = 16, GAP = 18, PAD = 36, TOP = 92, COLW = 298;
+  var nodes = {};
+  var colBottom = {};
+  STAGES.forEach(function (st, i) {
+    var y = TOP + 26;
+    byStage[st.id].forEach(function (s) {
+      var produces = (s.output_refs || []).map(function (a) { return { id: a }; });
+      var externals = (s.input_refs || []).filter(function (a) { return producersOf(a).length === 0; });
+      var chips = produces.length + externals.length;
+      var shownLines = Math.min(chips, 4) + (chips > 4 ? 1 : 0);
+      var h = 46 + shownLines * CHIP;
+      nodes[s.id] = { x: PAD + i * COLW, y: y, w: CARDW, h: h, s: s, produces: produces, externals: externals };
+      y += h + GAP;
+    });
+    colBottom[st.id] = y;
+  });
+
+  var maxBottom = 240;
+  STAGES.forEach(function (st) { maxBottom = Math.max(maxBottom, colBottom[st.id]); });
+  var H = maxBottom + 30;
+  var W = PAD + STAGES.length * COLW + 6;
+  svg.setAttribute("width", W); svg.setAttribute("height", H);
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+
+  STAGES.forEach(function (st, i) {
+    var x = PAD + i * COLW - 12;
+    svg.appendChild(svgEl("rect", { x: x, y: 16, width: COLW - 18, height: H - 30, rx: 12, fill: "#f7f9fd", stroke: "#dfe6f0" }));
+    svg.appendChild(svgEl("text", { x: x + 18, y: 44, fill: st.color, "font-size": 13.5, "font-weight": 600 }, st.icon + " " + st.name));
+    svg.appendChild(svgEl("text", { x: x + 18, y: 62, fill: "#8a99b0", "font-size": 10.5 }, byStage[st.id].length + " 个脚本"));
+  });
+
+  var edgeLayer = svgEl("g");
+  svg.appendChild(edgeLayer);
+  Object.keys(ARTIFACTS).forEach(function (a) {
+    var ps = producersOf(a).filter(function (s) { return vset[s.id]; });
+    var cs = consumersOf(a).filter(function (s) { return vset[s.id]; });
+    ps.forEach(function (p) {
+      cs.forEach(function (c) {
+        if (p.id === c.id) return;
+        var A = nodes[p.id], B = nodes[c.id];
+        if (!A || !B) return;
+        var x1 = A.x + A.w, y1 = A.y + 24, x2 = B.x, y2 = B.y + 24;
+        var same = Math.abs(x1 - x2) < 4;
+        var dx = same ? 56 : Math.max(40, (x2 - x1) / 2);
+        var d = same
+          ? "M" + x1 + " " + y1 + " C" + (x1 + dx) + " " + y1 + " " + (x2 + dx) + " " + y2 + " " + x2 + " " + y2
+          : "M" + x1 + " " + y1 + " C" + (x1 + dx) + " " + y1 + " " + (x2 - dx) + " " + y2 + " " + x2 + " " + y2;
+        var path = svgEl("path", { d: d, fill: "none", stroke: "rgba(2,132,199,.45)", "stroke-width": 1.4 });
+        path.appendChild(svgEl("title", {}, p.name + " → " + shortArtifact(a, 40) + " → " + c.name));
+        path.dataset.p = p.id; path.dataset.c = c.id;
+        edgeLayer.appendChild(path);
+      });
+    });
+  });
+
+  Object.keys(nodes).forEach(function (k) {
+    var n = nodes[k], s = n.s, st = stageOf(s.stage);
+    var g = svgEl("g", { style: "cursor:pointer" });
+    var core = !!s.core_chain;
+    g.appendChild(svgEl("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 8, fill: core ? "#eaf5fe" : "#ffffff", stroke: core ? "#0284c7" : "#c9d4e6", "stroke-width": core ? 1.6 : 1 }));
+    g.appendChild(svgEl("rect", { x: n.x, y: n.y, width: 3, height: n.h, rx: 1.5, fill: st.color }));
+    if (n.h > 46) {
+      g.appendChild(svgEl("line", { x1: n.x + 10, y1: n.y + 46, x2: n.x + n.w - 10, y2: n.y + 46, stroke: "#e8eef7", "stroke-width": 1 }));
+    }
+    g.appendChild(svgEl("text", { x: n.x + 12, y: n.y + 19, fill: "#1e2a3d", "font-size": 12, "font-weight": 600, "font-family": "Cascadia Code, Consolas, monospace" }, fitText(s.name, 226, 12)));
+    g.appendChild(svgEl("text", { x: n.x + 12, y: n.y + 36, fill: "#64748b", "font-size": 10.5 }, fitText(s.purpose || "", 226, 10.5)));
+
+    var chipY = n.y + 50, shown = 0;
+    n.produces.forEach(function (p) {
+      if (shown >= 4) return;
+      g.appendChild(svgEl("text", { x: n.x + 12, y: chipY, fill: "#0369a1", "font-size": 10.5, "font-family": "Cascadia Code, Consolas, monospace" }, fitText("→ " + shortArtifact(p.id, 60), 226, 10.5)));
+      chipY += CHIP; shown++;
+    });
+    n.externals.forEach(function (a) {
+      if (shown >= 4) return;
+      g.appendChild(svgEl("text", { x: n.x + 12, y: chipY, fill: "#b45309", "font-size": 10.5, "font-family": "Cascadia Code, Consolas, monospace" }, fitText("⇐ " + shortArtifact(a, 60), 226, 10.5)));
+      chipY += CHIP; shown++;
+    });
+    var total = n.produces.length + n.externals.length;
+    if (total > shown) {
+      g.appendChild(svgEl("text", { x: n.x + 12, y: chipY, fill: "#8a99b0", "font-size": 10 }, "…… 其余 " + (total - shown) + " 项"));
+    }
+
+    g.addEventListener("click", function () { openScript(s.id, true); });
+    g.addEventListener("mouseenter", function () { highlight(s.id, g); });
+    g.addEventListener("mouseleave", clearHighlight);
+    nodes[k].g = g;
+    svg.appendChild(g);
+  });
+
+  var edgeList = Array.prototype.slice.call(svg.querySelectorAll("path[data-p]"));
+  function highlight(id, g) {
+    Object.keys(nodes).forEach(function (k) { nodes[k].g.style.opacity = 0.18; });
+    g.style.opacity = 1;
+    edgeList.forEach(function (p) {
+      var hot = p.dataset.p === id || p.dataset.c === id;
+      p.setAttribute("stroke", hot ? "rgba(2,132,199,.95)" : "rgba(2,132,199,.06)");
+      p.setAttribute("stroke-width", hot ? 2 : 1.2);
+      if (hot) {
+        [p.dataset.p, p.dataset.c].forEach(function (x) { if (nodes[x]) nodes[x].g.style.opacity = 1; });
+      }
+    });
+  }
+  function clearHighlight() {
+    Object.keys(nodes).forEach(function (k) { nodes[k].g.style.opacity = 1; });
+    edgeList.forEach(function (p) { p.setAttribute("stroke", "rgba(2,132,199,.45)"); p.setAttribute("stroke-width", 1.4); });
+  }
+
+  var sub = document.getElementById("mapSub");
+  var totalFlow = SCRIPTS.filter(function (s) { return (s.input_refs || []).length + (s.output_refs || []).length > 0; }).length;
+  sub.textContent = "当前视图 " + visible.length + " 个脚本 · 全量含数据流脚本 " + totalFlow + " 个 · 悬停脚本高亮上下游，点击查看档案与回放；脚本间无代码级 import，关联全部通过中间产物建立。";
+}
+
+function renderCatalog() {
+  var q = (document.getElementById("search").value || "").trim().toLowerCase();
+  var rows = SCRIPTS.filter(function (s) { return stageAllowed(s.stage); }).filter(function (s) {
+    if (!q) return true;
+    var blob = [s.name, s.purpose, (s.notes || []).join(" "), (s.inputs || []).join(" "), (s.outputs || []).join(" ")].join(" ").toLowerCase();
+    return blob.indexOf(q) >= 0;
+  }).sort(function (a, b) {
+    var sa = STAGES.findIndex(function (x) { return x.id === a.stage; });
+    var sb = STAGES.findIndex(function (x) { return x.id === b.stage; });
+    if (sa !== sb) return sa - sb;
+    return (ORDER[a.status] || 9) - (ORDER[b.status] || 9);
+  });
+  document.getElementById("catCount").textContent = "共 " + rows.length + " 条";
+  var body = document.getElementById("catBody");
+  body.innerHTML = rows.map(function (s) {
+    var st = stageOf(s.stage), rp = replayOf(s);
+    var flow = (s.inputs && s.inputs.length ? "← " + s.inputs.join(" / ") : "") + (s.outputs && s.outputs.length ? "<br/>→ " + s.outputs.join(" / ") : "");
+    return "<tr data-id=\"" + esc(s.id) + "\">" +
+      '<td><div class="snm">' + esc(s.name) + (s.code_public ? ' <span class="badge core">代码</span>' : "") + '</div><div style="color:var(--dim);font-size:10px;font-family:var(--mono)">' + esc(s.id) + "</div></td>" +
+      '<td><div class="sp">' + esc(s.purpose) + "</div></td>" +
+      '<td><span style="color:' + st.color + '">' + esc(st.name) + "</span></td>" +
+      "<td>" + statusBadge(s.status) + "</td>" +
+      '<td style="text-align:center">' + (s.tracked ? '<span style="color:var(--ok)">✓</span>' : '<span style="color:var(--dim)">—</span>') + "</td>" +
+      '<td><div class="flow">' + flow + "</div></td>" +
+      "<td>" + (rp ? (rp.fidelity === "real" ? '<span style="color:var(--ok)">实测</span>' : '<span style="color:var(--warn)">示意</span>') : '<span style="color:var(--dim)">—</span>') + "</td>" +
+      "</tr>";
+  }).join("");
+  body.querySelectorAll("tr").forEach(function (tr) {
+    tr.onclick = function () { openScript(tr.getAttribute("data-id"), true); };
+  });
+}
+
+var currentVoucher = null;
+function renderAudit() {
+  var A = D.audit || { vouchers: [], steps: [] };
+  var sel = document.getElementById("vsel");
+  sel.innerHTML = "";
+  (A.vouchers || []).forEach(function (v, i) {
+    var b = el('<button><div class="v">' + esc(v.id) + '</div><div class="s">' + v.pages + " 页 · " + esc(v.extract_status) + "</div></button>");
+    b.onclick = function () { currentVoucher = v; renderAudit(); };
+    if ((currentVoucher && currentVoucher.id === v.id) || (!currentVoucher && i === 0)) b.classList.add("on");
+    sel.appendChild(b);
+  });
+  if (!currentVoucher && A.vouchers && A.vouchers.length) currentVoucher = A.vouchers[0];
+  var v = currentVoucher;
+  if (!v) return;
+
+  document.getElementById("vsummary").innerHTML =
+    '<div class="kv-list">' +
+    kv("凭证编号", v.id) + kv("拆分产物", v.split_file) + kv("页数", v.pages + " 页") + kv("清单匹配", v.extract_status) + kv("提取报告", v.extract_report || "提取结果报告.xlsx") +
+    "</div>";
+
+  var chain = document.getElementById("chain");
+  chain.innerHTML = "";
+  (A.steps || []).forEach(function (step, idx) {
+    var s = el('<div class="step"></div>');
+    s.innerHTML = '<div class="st">' + esc(step.title) + '</div><div class="sd">' + esc(step.detail) + "</div>";
+    var files = (step.files || []).filter(function (f) { return !f.voucher || f.voucher === v.id; });
+    if (files.length) {
+      var box = el('<div class="files"></div>');
+      files.forEach(function (f) {
+        box.appendChild(el('<div class="file-line"><span class="fi">▤</span><span>' + esc(f.name) + '</span><span class="fs">' + esc(f.meta || "") + "</span></div>"));
+      });
+      s.appendChild(box);
+    }
+    chain.appendChild(s);
+  });
+  document.getElementById("auditNote").textContent = A.note || "";
+}
+function kv(k, v) {
+  return '<div class="kv-item"><div class="kk">' + esc(k) + '</div><div class="vv">' + esc(v) + "</div></div>";
+}
+
+function renderKpi() {
+  var bars = document.getElementById("kpiBars");
+  bars.innerHTML = (D.kpis || []).map(function (k) {
+    var beforeW = k.before_w || 100, afterW = k.after_w || 8;
+    return '<div class="kbar"><div class="khead"><span class="kk">' + esc(k.name) + '</span><span class="ki">' + esc(k.improve) + "</span></div>" +
+      '<div class="krow"><span class="kl">优化前</span><div class="track"><div class="fill before" style="width:' + beforeW + '%"></div></div><span class="kv">' + esc(k.before) + "</span></div>" +
+      '<div class="krow"><span class="kl">优化后</span><div class="track"><div class="fill after" style="width:' + afterW + '%"></div></div><span class="kv">' + esc(k.after) + "</span></div>" +
+      (k.basis ? '<div class="kbasis">推算：' + esc(k.basis) + "</div>" : "") + "</div>";
+  }).join("");
+  document.getElementById("kpiNote").textContent = D.kpiNote || "";
+}
+
+function openScript(id, showReplay) {
+  var s = scriptById(id); if (!s) return;
+  var st = stageOf(s.stage), rp = replayOf(s);
+  document.getElementById("drTitle").textContent = s.name;
+  document.getElementById("drPath").textContent = s.id;
+  var body = document.getElementById("drBody");
+  var html = "";
+  html += '<div class="sec"><div class="st">功能定位</div><div class="purpose">' + esc(s.purpose) + "</div>" +
+    '<div class="badges">' + statusBadge(s.status) + '<span class="badge" style="color:' + st.color + ';border-color:' + st.color + '55">' + esc(st.name) + "阶段</span>" +
+    (s.tracked ? '<span class="badge core">核心</span>' : "") + (s.code_public ? '<span class="badge core">代码已公开</span>' : "") + fidelityBadge(rp) +
+    (s.core_chain ? '<span class="badge active">核心链路</span>' : "") + "</div></div>";
+
+  if (rp) {
+    html += '<div class="sec"><div class="st">运行回放</div>' +
+      '<div class="fidelity' + (rp.fidelity === "sim" ? " sim" : "") + '">' +
+      '<div class="ft">' + (rp.fidelity === "real" ? '<span style="color:var(--ok)">● 实测</span>' : '<span style="color:var(--warn)">● 示意</span>') +
+      "<span style=\"color:var(--muted);font-weight:400\">" + esc(rp.title) + "</span></div>" +
+      '<div class="fm">' + esc(rp.note) + (rp.duration_s != null ? " · 耗时 " + rp.duration_s + "s" : "") +
+      (rp.exit_code != null ? " · 退出码 " + rp.exit_code : "") + "</div></div>" +
+      '<div class="kv-list">' + kv("输入数据", (rp.inputs || []).join("，")) + "</div>" +
+      '<div class="logbox" id="logbox"></div>' +
+      '<div class="log-actions"><button class="btn" id="replayBtn">重新播放</button><button class="btn" id="logCopy">复制日志</button></div>';
+  }
+
+  html += '<div class="sec"><div class="st">数据流</div><div class="kv-list">' +
+    '<div class="kv-item"><div class="kk">输入</div><ul>' + (s.inputs || []).map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></div>" +
+    '<div class="kv-item"><div class="kk">输出</div><ul>' + (s.outputs || []).map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></div>" +
+    "</div></div>";
+
+  if (s.notes && s.notes.length) {
+    html += '<div class="sec"><div class="st">实现要点 / 已知坑</div><ul class="notes">' + s.notes.map(function (n) { return "<li>" + esc(n) + "</li>"; }).join("") + "</ul></div>";
+  }
+  if (s.deps && s.deps.length) {
+    html += '<div class="sec"><div class="st">依赖</div><div class="badges">' + s.deps.map(function (d) { return '<span class="badge doc">' + esc(d) + "</span>"; }).join("") + "</div></div>";
+  }
+  if (s.interactive && s.interactive.length) {
+    html += '<div class="sec"><div class="st">交互方式</div><div class="badges">' + s.interactive.map(function (d) { return '<span class="badge sim">' + esc(d) + "</span>"; }).join("") + "</div></div>";
+  }
+  var lin = (D.lineages || []).filter(function (l) { return l.members.indexOf(s.id) >= 0; })[0];
+  if (lin || s.supersedes || s.superseded_by) {
+    html += '<div class="sec"><div class="st">版本谱系</div>';
+    if (lin) html += '<div class="kv-item"><div class="kk">' + esc(lin.family) + '</div><div style="color:var(--muted);font-size:11.5px;margin-bottom:4px">' + esc(lin.desc) + "</div><ul>" +
+      lin.members.map(function (m) { return "<li" + (m === s.id ? ' style="color:var(--accent)"' : "") + ">" + (m === s.id ? "▸ " : "") + esc(m) + "</li>"; }).join("") + "</ul></div>";
+    if (s.supersedes) html += '<div class="kv-item" style="margin-top:6px"><div class="kk">替代了</div><div class="vv">' + esc(s.supersedes) + "</div></div>";
+    if (s.superseded_by) html += '<div class="kv-item" style="margin-top:6px"><div class="kk">已被替代</div><div class="vv">' + esc(s.superseded_by) + "</div></div>";
+    html += "</div>";
+  }
+
+  if (rp && rp.outputs && rp.outputs.length) {
+    html += '<div class="sec"><div class="st">产物快照（' + rp.outputs.length + '）</div>';
+    rp.outputs.forEach(function (o) {
+      html += '<div class="out-card"><div class="out-head">▤ <span>' + esc(o.path) + '</span><span class="of">' + esc(o.kind) + " · " + fmtBytes(o.bytes) + "</span></div>";
+      html += '<div class="out-prev">' + previewHtml(o) + "</div></div>";
+    });
+    html += "</div>";
+  }
+
+  body.innerHTML = html;
+  openDrawer();
+  if (rp && showReplay) startTypewriter(rp.log || "");
+  else if (rp) startTypewriter(rp.log || "");
+}
+function previewHtml(o) {
+  var pv = o.preview;
+  if (!pv) return '<div class="pv-note">（无预览）</div>';
+  if (o.kind === "xlsx" && pv.preview) {
+    var first = Object.keys(pv.preview)[0];
+    var rows = pv.preview[first] || [];
+    return '<div class="pv-note">工作表：' + esc((pv.sheets || []).join(" / ")) + "</div>" +
+      '<table class="pv-table">' + rows.map(function (r, i) {
+        return "<tr>" + r.map(function (c) { return (i === 0 ? "<th>" : "<td>") + esc(c) + (i === 0 ? "</th>" : "</td>"); }).join("") + "</tr>";
+      }).join("") + "</table>";
+  }
+  if (o.kind === "pdf" && pv) {
+    return '<div class="pv-note">页数：' + pv.pages + '</div><div class="pv-text">' + esc(pv.first_page_text || "") + "</div>";
+  }
+  if (o.kind === "text" && typeof pv === "string") {
+    return '<div class="pv-text">' + esc(pv.slice(0, 700)) + "</div>";
+  }
+  return '<div class="pv-note">（无预览）</div>';
+}
+
+var typeTimer = null;
+function startTypewriter(log) {
+  var box = document.getElementById("logbox");
+  if (!box) return;
+  if (typeTimer) clearInterval(typeTimer);
+  var lines = String(log).split("\n");
+  var i = 0, buf = [];
+  box.textContent = "";
+  typeTimer = setInterval(function () {
+    if (i >= lines.length) { clearInterval(typeTimer); typeTimer = null; return; }
+    var line = lines[i++];
+    var cls = /失败|错误|Error|Traceback|FAILED|!!!/.test(line) ? "err" : /警告|WARN|警告:/.test(line) ? "warn" : /成功|完成|OK|已创建|已保存|已生成/.test(line) ? "ok" : "";
+    buf.push(cls ? '<span class="' + cls + '">' + esc(line) + "</span>" : esc(line));
+    box.innerHTML = buf.join("\n");
+    box.scrollTop = box.scrollHeight;
+  }, 45);
+  var btn = document.getElementById("replayBtn");
+  if (btn) btn.onclick = function () { startTypewriter(log); };
+  var cp = document.getElementById("logCopy");
+  if (cp) cp.onclick = function () {
+    navigator.clipboard && navigator.clipboard.writeText(String(log));
+    cp.textContent = "已复制";
+    setTimeout(function () { cp.textContent = "复制日志"; }, 1200);
+  };
+}
+
+function openArtifact(id) {
+  var a = ARTIFACTS[id];
+  document.getElementById("drTitle").textContent = a ? a.name : id;
+  document.getElementById("drPath").textContent = "artifact: " + id;
+  var producers = [], consumers = [];
+  SCRIPTS.forEach(function (s) {
+    if ((s.output_refs || []).indexOf(id) >= 0) producers.push(s);
+    if ((s.input_refs || []).indexOf(id) >= 0) consumers.push(s);
+  });
+  var html = '<div class="sec"><div class="st">产物说明</div><div class="purpose">' +
+    esc(a ? (a.kind === "folder" ? "目录集合" : a.kind === "clipboard" ? "剪贴板数据" : a.kind === "external" ? "外部系统数据" : "文件产物") : "") + " · " + esc(id) + "</div></div>";
+  html += '<div class="sec"><div class="st">生产方（' + producers.length + '）</div><div class="kv-list">' +
+    producers.map(linkItem).join("") + "</div></div>";
+  html += '<div class="sec"><div class="st">消费方（' + consumers.length + '）</div><div class="kv-list">' +
+    consumers.map(linkItem).join("") + "</div></div>";
+  document.getElementById("drBody").innerHTML = html;
+  openDrawer();
+}
+function linkItem(s) {
+  return '<div class="kv-item link" data-goto="' + esc(s.id) + '"><div class="vv">' + esc(s.name) + '</div><div class="kk">' + esc(s.purpose) + "</div></div>";
+}
+document.getElementById("drBody").addEventListener("click", function (ev) {
+  var t = ev.target.closest("[data-goto]");
+  if (t) openScript(t.getAttribute("data-goto"), true);
+});
+
+function openDrawer() { document.getElementById("drawer").classList.add("on"); }
+document.getElementById("drClose").onclick = function () { document.getElementById("drawer").classList.remove("on"); };
+document.addEventListener("keydown", function (e) { if (e.key === "Escape") document.getElementById("drClose").click(); });
+
+function switchView(name) {
+  document.querySelectorAll("nav.tabs button").forEach(function (b) { b.classList.toggle("on", b.dataset.view === name); });
+  document.querySelectorAll("section.view").forEach(function (v) { v.classList.toggle("on", v.id === "view-" + name); });
+  if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+  if (name === "map") renderMap();
+}
+document.getElementById("tabs").addEventListener("click", function (e) {
+  var b = e.target.closest("button");
+  if (b) switchView(b.dataset.view);
+});
+document.getElementById("search").addEventListener("input", renderCatalog);
+
+(function init() {
+  renderTop();
+  renderPipeline();
+  renderStageChips();
+  var avc = document.getElementById("allVerChip");
+  avc.onclick = function () {
+    showAllVersions = !showAllVersions;
+    avc.classList.toggle("on", showAllVersions);
+    renderMap();
+  };
+  renderMap();
+  renderCatalog();
+  renderAudit();
+  renderKpi();
+  var h = (location.hash || "#overview").slice(1);
+  switchView(["overview", "map", "audit", "kpi"].indexOf(h) >= 0 ? h : "overview");
+  var qs = new URLSearchParams(location.search);
+  if (qs.get("open")) setTimeout(function () { openScript(qs.get("open"), true); }, 60);
+})();
+</script>
+</body>
+</html>

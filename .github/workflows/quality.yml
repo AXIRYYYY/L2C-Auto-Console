@@ -1,0 +1,37 @@
+name: quality
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安装公开层依赖
+        run: python -m pip install --upgrade pip -r requirements-dev.txt
+
+      - name: 敏感信息扫描（硬门：任何硬违规即失败）
+        run: python docs/demo/sensitive_check.py
+
+      - name: 公开清单与白名单一致性
+        run: |
+          python docs/demo/sensitive_check.py --sync
+          git diff --exit-code docs/demo/public.gitignore
+
+      - name: 构建可复现（产物必须与仓库提交一致）
+        run: |
+          python docs/demo/build_console.py
+          git diff --exit-code docs/demo/console.html docs/FUNCTION_MAP.md
+
+      - name: 生成样例假数据
+        run: python sample_data/generate_sample_data.py
+
+      - name: 公开脚本与工具测试
+        run: python -m pytest docs/demo/tests -q

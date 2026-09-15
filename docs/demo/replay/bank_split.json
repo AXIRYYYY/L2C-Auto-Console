@@ -1,0 +1,47 @@
+{
+  "slug": "bank_split",
+  "title": "银行流水按凭证拆分",
+  "script": "accounting/bankStatementSplitterBasedOnJournal.py",
+  "stage": "archive",
+  "fidelity": "real",
+  "mode": "plain",
+  "note": "根目录必须恰好 1 个 PDF + 1 个日记账；行数与页数差异 >2 直接拒绝",
+  "inputs": [
+    "归档/银行流水-202601.pdf",
+    "归档/日记账202601.xlsx"
+  ],
+  "started_at": "2026-09-15 22:36:21",
+  "dialogs": [],
+  "outputs": [
+    {
+      "path": "分割完成/记-001.pdf",
+      "bytes": 134109,
+      "kind": "pdf",
+      "preview": {
+        "pages": 1,
+        "first_page_text": "浙商银行电子回单 回单编号：2000260101 交易日期：2026-01-31 金额：1000.00 对方户名：示例供应商有限公司 摘要：记-001"
+      }
+    },
+    {
+      "path": "分割完成/记-002.pdf",
+      "bytes": 134110,
+      "kind": "pdf",
+      "preview": {
+        "pages": 1,
+        "first_page_text": "浙商银行电子回单 回单编号：2000260102 交易日期：2026-01-31 金额：2000.00 对方户名：示例供应商有限公司 摘要：记-002"
+      }
+    },
+    {
+      "path": "分割完成/记-003.pdf",
+      "bytes": 134109,
+      "kind": "pdf",
+      "preview": {
+        "pages": 1,
+        "first_page_text": "浙商银行电子回单 回单编号：2000260103 交易日期：2026-01-31 金额：3000.00 对方户名：示例供应商有限公司 摘要：记-003"
+      }
+    }
+  ],
+  "log": "处理完成，生成的文件已保存到 '分割完成' 文件夹中。\n",
+  "exit_code": 0,
+  "duration_s": 0.6
+}

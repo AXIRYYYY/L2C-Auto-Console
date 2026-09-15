@@ -1,0 +1,32 @@
+# ============================================================
+# 公开仓库白名单：默认忽略一切，仅放行 public_files.txt 清单内的文件
+# 由 docs/demo/sensitive_check.py --sync 自动生成，请勿手改
+# ============================================================
+
+*
+!*/
+!/.gitignore
+!/README.md
+!/LICENSE
+!/requirements.txt
+!/requirements-dev.txt
+!.github/workflows/quality.yml
+!accounting/compare_vouchers_advanced.py
+!accounting/bankStatementSplitterBasedOnJournal.py
+!accounting/split_vouchers_凭证PDF拆分.py
+!integration/namelistget_feishu_v9.py
+!docs/FUNCTION_MAP.md
+!docs/function_map.json
+!docs/SENSITIVE_SCAN_REPORT.md
+!docs/demo/console.html
+!docs/demo/console.template.html
+!docs/demo/build_console.py
+!docs/demo/run_replay.py
+!docs/demo/sensitive_check.py
+!docs/demo/public_files.txt
+!docs/demo/_harness/run_with_patches.py
+!docs/demo/tests/test_public_tools.py
+!docs/demo/replay/*.json
+!docs/demo/assets/*.png
+!sample_data/README.md
+!sample_data/generate_sample_data.py

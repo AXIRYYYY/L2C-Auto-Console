@@ -1,0 +1,66 @@
+{
+  "slug": "pdf_text_diff",
+  "title": "PDF 文本逐页比对",
+  "script": "accounting/文字pdf对比脚本.py",
+  "stage": "archive",
+  "fidelity": "real",
+  "mode": "harness",
+  "note": "逐页提取文本，无差异/有差异 + unified diff",
+  "inputs": [
+    "归档/结算单-修改前.pdf",
+    "归档/结算单-修改后.pdf"
+  ],
+  "started_at": "2026-09-15 22:36:22",
+  "dialogs": [
+    {
+      "type": "dialog_file",
+      "title": "请选择第一份PDF文件（旧文件/原始文件）",
+      "value": "<工作区>\\pdf_text_diff/in/结算单-修改前.pdf"
+    },
+    {
+      "type": "dialog_file",
+      "title": "请选择第二份PDF文件（新文件/修改后文件）",
+      "value": "<工作区>\\pdf_text_diff/in/结算单-修改后.pdf"
+    },
+    {
+      "type": "showinfo",
+      "args": [
+        "比对完成",
+        "PDF文本比对已完成。\n\n共发现 1 个页面存在差异。\n\n详细报告已保存至:\n<工作区>\\pdf_text_diff\\in\\PDF文本比对结果_20260915_223623"
+      ]
+    },
+    {
+      "type": "startfile",
+      "path": "<工作区>\\pdf_text_diff\\in\\PDF文本比对结果_20260915_223623"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "in/PDF文本比对结果_20260915_223623/文本比对结果报告.xlsx",
+      "bytes": 5192,
+      "kind": "xlsx",
+      "preview": {
+        "sheets": [
+          "Sheet1"
+        ],
+        "preview": {
+          "Sheet1": [
+            [
+              "页码",
+              "差异状态",
+              "差异详情"
+            ],
+            [
+              1,
+              "有差异",
+              "--- 文件A (旧)\n+++ 文件B (新)\n@@ -1,5 +1,5 @@\n 服务结算单\n 收款方：示例科技服务有限公司\n-金额：1,000.00 元\n+金额：1,200.00 元\n 用途：技术服务费\n 结算日期：2026-01-15"
+            ]
+          ]
+        }
+      }
+    }
+  ],
+  "log": "================================================================\n[harness] 执行: <工作区>\\pdf_text_diff\\accounting\\文字pdf对比脚本.py\n[harness] 工作目录: <工作区>\\pdf_text_diff\n================================================================\n[dialog] 文件选择 -> <工作区>\\pdf_text_diff/in/结算单-修改前.pdf\n[dialog] 文件选择 -> <工作区>\\pdf_text_diff/in/结算单-修改后.pdf\n结果将保存在: <工作区>\\pdf_text_diff\\in\\PDF文本比对结果_20260915_223623\n开始比对... 共 1 页。\n正在比对第 1 / 1 页...\n\n比对完成！\n[showinfo] 比对完成 | PDF文本比对已完成。\n\n共发现 1 个页面存在差异。\n\n详细报告已保存至:\n<工作区>\\pdf_text_diff\\in\\PDF文本比对结果_20260915_223623\n[startfile] 已拦截打开 -> <工作区>\\pdf_text_diff\\in\\PDF文本比对结果_20260915_223623\n================================================================\n[harness] 结束，退出码 = 0\n================================================================\n",
+  "exit_code": 0,
+  "duration_s": 1.26
+}

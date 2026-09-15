@@ -1,0 +1,66 @@
+# 公开仓库文件清单（唯一事实源）
+# 说明：
+#   - docs/demo/sensitive_check.py 读取本清单做敏感扫描；
+#     运行 `python docs/demo/sensitive_check.py --sync` 可由本清单重新生成 public.gitignore
+#   - 新增公开文件时先在此登记，再跑扫描，全部通过后才允许提交
+#   - 公开范围：演示层（页面/文档/回放数据）+ 4 个代码样本脚本 + 质量门配置；
+#     其余业务脚本实现不公开
+
+.gitignore
+README.md
+LICENSE
+requirements.txt
+requirements-dev.txt
+.github/workflows/quality.yml
+
+# ---- 代码样本（可验证的工程能力）----
+accounting/compare_vouchers_advanced.py
+accounting/bankStatementSplitterBasedOnJournal.py
+accounting/split_vouchers_凭证PDF拆分.py
+integration/namelistget_feishu_v9.py
+
+# ---- 演示层文档 ----
+docs/FUNCTION_MAP.md
+docs/function_map.json
+docs/SENSITIVE_SCAN_REPORT.md
+
+# ---- 控制台与工具 ----
+docs/demo/console.html
+docs/demo/console.template.html
+docs/demo/build_console.py
+docs/demo/run_replay.py
+docs/demo/sensitive_check.py
+docs/demo/public_files.txt
+docs/demo/_harness/run_with_patches.py
+docs/demo/tests/test_public_tools.py
+
+# ---- 回放数据（16 实测 + 4 示意）----
+docs/demo/replay/approval_amounts.json
+docs/demo/replay/approval_rename.json
+docs/demo/replay/audit_extract.json
+docs/demo/replay/bank_split.json
+docs/demo/replay/cashflow_merge.json
+docs/demo/replay/clipboard_summary.json
+docs/demo/replay/intercompany.json
+docs/demo/replay/invoice_category.json
+docs/demo/replay/invoice_enhanced.json
+docs/demo/replay/invoice_match.json
+docs/demo/replay/invoice_number_query.json
+docs/demo/replay/namelist_pack.json
+docs/demo/replay/ofd_convert.json
+docs/demo/replay/pdf_text_diff.json
+docs/demo/replay/profit_merge.json
+docs/demo/replay/repo_audit.json
+docs/demo/replay/voucher_compare.json
+docs/demo/replay/voucher_list_compare.json
+docs/demo/replay/voucher_split.json
+docs/demo/replay/web_downloader.json
+
+# ---- README 截图 ----
+docs/demo/assets/console-overview.png
+docs/demo/assets/console-map.png
+docs/demo/assets/console-audit.png
+
+# ---- 样例假数据（生成器与说明，生成物不入库）----
+sample_data/README.md
+sample_data/generate_sample_data.py

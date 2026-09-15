@@ -1,0 +1,57 @@
+{
+  "slug": "invoice_category",
+  "title": "发票分类汇总",
+  "script": "accounting/summary_by_invoice_category.py",
+  "stage": "daily",
+  "fidelity": "real",
+  "mode": "plain",
+  "note": "读取第 24 列类别与第 16 列金额，输出分类汇总 + 合计",
+  "inputs": [
+    "日常/processed_invoices.xlsx（中间产物快照）"
+  ],
+  "started_at": "2026-09-15 22:36:12",
+  "dialogs": [],
+  "outputs": [
+    {
+      "path": "summary_by_invoice_category.xlsx",
+      "bytes": 5030,
+      "kind": "xlsx",
+      "preview": {
+        "sheets": [
+          "Summary by Invoice Category"
+        ],
+        "preview": {
+          "Summary by Invoice Category": [
+            [
+              "发票类别",
+              "价税合计金额汇总"
+            ],
+            [
+              "住宿服务",
+              1180
+            ],
+            [
+              "餐饮服务",
+              256
+            ],
+            [
+              "汽油",
+              300
+            ],
+            [
+              "通行费",
+              15
+            ],
+            [
+              "合计金额",
+              1751
+            ]
+          ]
+        }
+      }
+    }
+  ],
+  "log": "按发票类别分类汇总的结果已保存至路径：<工作区>\\invoice_category\\summary_by_invoice_category.xlsx\n",
+  "exit_code": 0,
+  "duration_s": 0.5
+}

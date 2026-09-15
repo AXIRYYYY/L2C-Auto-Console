@@ -1,0 +1,25 @@
+{
+  "slug": "repo_audit",
+  "title": "仓库重复文件自检",
+  "script": "accounting/analyze_duplicates.py",
+  "stage": "aux",
+  "fidelity": "real",
+  "mode": "plain",
+  "note": "按核心名分组 + difflib 相似度，输出 保留/审查/删除 建议报告",
+  "inputs": [
+    "仓库全部 .py 源码副本（59 个）"
+  ],
+  "started_at": "2026-09-15 22:36:26",
+  "dialogs": [],
+  "outputs": [
+    {
+      "path": "文件整理分析报告.md",
+      "bytes": 9055,
+      "kind": "text",
+      "preview": "# 📋 项目文件整理分析报告\n\n> **生成时间**：2026-09-15 22:36:26\n> **扫描目录**：`<工作区>\\repo_audit`\n> **扫描到的 .py 文件总数**：59\n> **候选重复组数**：5 组\n\n---\n\n## ⚠️ 重要说明\n\n- 本报告**仅提供分析建议**，不会自动删除或移动任何文件。\n- **\"删除\"** 建议意味着该文件与组内最新文件内容高度相似（≥95%），可安全清理。\n- **\"审查\"** 建议意味着文件内容部分相似或存在歧义，需要你人工确认后再决定。\n- **\"保留\"** 建议意味着该文件是独立版本或组内最新文件，应当保留。\n- 内容比对使用 `difflib.SequenceMatcher`，在规范化空白后计算相似度。\n\n---\n\n## 📊 统计摘要\n\n| 建议状态 | 文件数量 |\n|---------|---------|\n| ✅ 保留   | 55 |\n| ❌ 删除   | 2 |\n| 🔍 审查   | 2 |\n| **合计** |"
+    }
+  ],
+  "log": "[1/4] 开始扫描 .py 文件...\n   找到 59 个 .py 源码文件\n[2/4] 按核心文件名分组...\n   候选重复组：5 组\n[3/4] 比对每组内容相似度...\n   正在比对：脱敏汇总（2 个文件）\n     [KEEP] 保留: accounting\\脱敏汇总.py\n     [KEEP] 保留: 脱敏汇总.py\n   正在比对：pdf_processor_for_approval（2 个文件）\n     [KEEP] 保留: file_processing\\pdf_processor_for_approval.py\n     [DEL] 删除: 202602\\飞书\\pdf_processor_for_approval.py\n   正在比对：delete_duplicate_files（2 个文件）\n     [REVIEW] 审查: file_processing\\delete_duplicate_files_v2.py\n     [REVIEW] 审查: file_processing\\delete_duplicate_files.py\n   正在比对：getpdf（2 个文件）\n     [KEEP] 保留: file_processing\\getpdf_v2.py\n     [DEL] 删除: file_processing\\getpdf_v1.py\n   正在比对：web_file_downloader（2 个文件）\n     [KEEP] 保留: integration\\web_file_downloader_v1.py\n     [KEEP] 保留: integration\\web_file_downloader_v2.py\n[4/4] 生成 Markdown 报告...\n\n[完成] 报告已生成：<工作区>\\repo_audit\\文件整理分析报告.md\n   总文件数：59\n   建议保留：55\n   建议删除：2\n   建议审查：2\n",
+  "exit_code": 0,
+  "duration_s": 0.39
+}

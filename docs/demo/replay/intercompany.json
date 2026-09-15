@@ -1,0 +1,20 @@
+{
+  "slug": "intercompany",
+  "title": "关联方往来清理（半成品）",
+  "script": "accounting/IntercompanyOutstandingCleanupTool.py",
+  "stage": "aux",
+  "fidelity": "simulated",
+  "mode": "simulated",
+  "note": "some_condition_met 未定义、依赖人工填写 column_info.xlsx，README 标注开发中；日志为示意",
+  "inputs": [
+    "全部科目余额表.xlsx",
+    "科目辅助明细账.xlsx",
+    "column_info.xlsx（列映射配置）"
+  ],
+  "started_at": "2026-09-15 22:36:27",
+  "dialogs": [],
+  "outputs": [],
+  "log": "已在 D:\\your_data\\column_info.xlsx 创建 column_info.xlsx，请填写文件名称/列名/列号...\n请按回车键继续 ...\n请输入全部科目余额表xlsx文件的路径：<已输入>\n请输入科目辅助明细账xlsx文件的路径：<已输入>\n[读取] 余额表：header=3，按 column_info 定位「期末余额」列\n[读取] 明细账：定位 摘要/借方/贷方/项目/客户/供应商/部门/员工 列\n[中断] 处理到「科目余额是否为0」判定时命中占位逻辑 some_condition_met\n[说明] 该工具开发中：列映射零配置思路已跑通，判定逻辑待补全",
+  "exit_code": null,
+  "duration_s": null
+}
