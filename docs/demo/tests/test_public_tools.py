@@ -79,7 +79,7 @@ def test_safe_tokens_not_flagged_as_hard(safe_text):
 def test_manifest_entries_exist():
     missing = []
     for rel in sc.read_manifest():
-        source = sc.SOURCE_OVERRIDES.get(rel, rel)
+        source = sc.resolve_source(rel)
         if not (REPO / source).exists():
             missing.append(rel)
     assert not missing, f"清单登记但文件不存在: {missing}"
@@ -87,7 +87,7 @@ def test_manifest_entries_exist():
 
 def test_gitignore_in_sync_with_manifest():
     expected = sc.build_gitignore_text(sc.read_manifest())
-    actual = io.open(sc.PUBLIC_IGNORE, encoding="utf-8").read()
+    actual = io.open(sc.public_ignore_path(), encoding="utf-8").read()
     assert actual == expected, "public.gitignore 与清单不一致，请运行 sensitive_check.py --sync"
 
 

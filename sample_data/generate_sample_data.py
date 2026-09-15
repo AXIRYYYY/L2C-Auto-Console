@@ -22,7 +22,11 @@ CJK = "china-s"
 FONT_CANDIDATES = [
     r"C:\Windows\Fonts\simhei.ttf",
     r"C:\Windows\Fonts\msyh.ttc",
+    r"C:\Windows\Fonts\msyhbd.ttc",
+    r"C:\Windows\Fonts\msjh.ttc",
     r"C:\Windows\Fonts\simsun.ttc",
+    r"C:\Windows\Fonts\Deng.ttf",
+    r"C:\Windows\Fonts\meiryo.ttc",
     "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
 ]
 
@@ -515,6 +519,7 @@ def main():
     gen_profit_statements()
     gen_cashflow_statements()
     ensure_dir(BASE)
+    print("嵌入字体:", FONT_FILE or "未找到系统 CJK 字体，回退内置 china-s（文本提取可能受限）")
     print("sample_data 生成完成：", BASE)
     for root, dirs, files in os.walk(BASE):
         if files:

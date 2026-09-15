@@ -20,13 +20,23 @@ if hasattr(sys.stdout, "reconfigure"):
 HERE = os.path.dirname(os.path.abspath(__file__))
 BASE = os.path.dirname(os.path.dirname(HERE))
 MANIFEST = os.path.join(HERE, "public_files.txt")
-PUBLIC_IGNORE = os.path.join(HERE, "public.gitignore")
+PUBLIC_IGNORE_LOCAL = os.path.join(HERE, "public.gitignore")
+REPO_IGNORE = os.path.join(BASE, ".gitignore")
 
 SKIP_SELF = {"docs/demo/sensitive_check.py"}
 
-SOURCE_OVERRIDES = {
-    ".gitignore": "docs/demo/public.gitignore",
-}
+
+def public_ignore_path():
+    """白名单文件位置：源仓库用待发布的 docs/demo/public.gitignore；
+    公开仓库/干净克隆里不存在它，回退到根 .gitignore（即已发布的白名单）。"""
+    return PUBLIC_IGNORE_LOCAL if os.path.exists(PUBLIC_IGNORE_LOCAL) else REPO_IGNORE
+
+
+def resolve_source(rel):
+    """清单条目 → 实际读取的文件（.gitignore 指向白名单文件）"""
+    if rel == ".gitignore":
+        return os.path.relpath(public_ignore_path(), BASE).replace(os.sep, "/")
+    return rel
 
 BLACKLIST = ["千二", "叶佳敏", "qianer", "K2"]
 
@@ -80,7 +90,7 @@ def is_text(path):
 
 
 def scan_file(rel):
-    source_rel = SOURCE_OVERRIDES.get(rel, rel)
+    source_rel = resolve_source(rel)
     full = os.path.join(BASE, source_rel.replace("/", os.sep))
     if not os.path.exists(full):
         return [("MISSING", 0, "清单登记但文件不存在：" + source_rel)], []
@@ -136,9 +146,10 @@ def build_gitignore_text(entries):
 
 
 def sync_gitignore(entries):
-    with io.open(PUBLIC_IGNORE, "w", encoding="utf-8") as f:
+    target = public_ignore_path()
+    with io.open(target, "w", encoding="utf-8") as f:
         f.write(build_gitignore_text(entries))
-    print("public.gitignore 已生成：", PUBLIC_IGNORE)
+    print("public.gitignore 已生成：", target)
     print("条目数：", len(entries))
 
 
