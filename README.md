@@ -1,7 +1,7 @@
 # 业财流转自动化控制台 (L2C-Auto-Console)
 ## 零断点打通「业务审批-财务核算-单项目 ROI」的实战工具箱
 
-[![quality](https://github.com/AXIRYYYY/L2C-Auto-Console/actions/workflows/quality.yml/badge.svg)](https://github.com/AXIRYYYY/L2C-Auto-Console/actions/workflows/quality.yml)
+[![quality](https://github.com/AXIRYYYY/L2C-Auto-Console/actions/workflows/quality.yml/badge.svg?branch=main)](https://github.com/AXIRYYYY/L2C-Auto-Console/actions/workflows/quality.yml?query=branch%3Amain)
 
 > 把财务规则前置到审批前端（事前预算卡控），把商机与回款数据打通（实时 ROI），
 > 让「业务审批 → 财务核算 → 数据归档 → 审计溯源」全程自动化——月结从 3 天压缩到 4 小时。
