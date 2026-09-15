@@ -38,13 +38,16 @@ sample_data/
 
 ## 与脚本的对接约定（生成时刻意对齐的解析规则）
 
-> **目录约定（重要）**：脚本把**「脚本所在目录的上一级」**当作数据目录（源自早期"脚本平铺在项目根目录"的布局）。
-> 因此正确摆法是：**脚本放进数据目录的下一级子目录**（如 `<工作目录>/accounting/xxx.py`），数据放 `<工作目录>/`。
+> **怎么跑（一条规则 + 两步）**：脚本把**「脚本所在目录的上一级」**当作数据目录（源自早期"脚本平铺在项目根目录"的布局）。
 >
-> - `compare_vouchers_advanced.py` / `split_vouchers_凭证PDF拆分.py`：数据路径由命令行参数或弹窗指定，输出落在输入文件同级
-> - `namelistget_feishu_v9.py`：`namelist.xlsx` 需在「脚本上一级」目录；结果写入该目录下的 `搜索结果/`
-> - `bankStatementSplitterBasedOnJournal.py`：要求「脚本上一级」目录下**恰好一个**流水 PDF + **恰好一个**含「日记账」的 xlsx
-> - 一键按此约定运行（自动摆好布局、仓库根零污染）：`python docs/demo/run_sample.py <样例名>`
+> 1. 生成数据：`python sample_data/generate_sample_data.py`
+> 2. 把脚本**复制**到「数据目录」的下一级子目录，再运行（用「移动」也行）：
+>    - **资料包整合**：复制到 `sample_data\月底\integration\` 后运行 → 结果在 `sample_data\月底\搜索结果\`
+>    - **银行流水拆分**：先新建 `sample_data\流水演示\`（只放 `银行流水-202601.pdf` + `日记账202601.xlsx`，因为脚本要求「恰好 1 个 PDF + 1 个含『日记账』的 xlsx」），把脚本复制到 `sample_data\流水演示\accounting\` 后运行
+>    - `compare_vouchers_advanced.py` / `split_vouchers_凭证PDF拆分.py`：数据路径由命令行参数或弹窗指定，输出落在输入文件同级
+>
+> - **详细步骤（含弹窗该选哪个目录）**：见根目录 [README §4.3](../README.md)
+> - **一键按此约定运行**（自动摆好布局、仓库根零污染）：`python docs/demo/run_sample.py <样例名>`
 
 | 数据 | 约定 |
 |------|------|

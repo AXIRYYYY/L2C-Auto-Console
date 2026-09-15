@@ -81,32 +81,76 @@ python docs/demo/run_sample.py voucher_compare   # 运行（自动按正确布�
 
 `run_sample.py` 做的就是**把「复制脚本到工作目录」这一步自动化**：脚本按 `<工作区>/accounting/`、`<工作区>/integration/` 摆好，数据放在工作区根目录；运行完打印日志与产物清单。工作区默认保留在 `docs/demo/.sample_run/`（加 `--clean` 则运行后删除）。
 
-### 4.3 手动运行（等价做法）
+### 4.3 手动运行（照着做即可）
+
+先运行一次数据生成器（只需一次），样例数据会生成在 `sample_data/` 下：
 
 ```bash
-# ① 凭证比对：数据路径由参数指定，输出落在「修改后」文件旁
-python accounting/compare_vouchers_advanced.py sample_data/归档/凭证清单_修改前.xlsx sample_data/归档/凭证清单_修改后.xlsx
-
-# ② 凭证拆分：输出落在所选 PDF 同级
-python accounting/split_vouchers_凭证PDF拆分.py sample_data/归档/记账凭证-202601.pdf
-
-# ③ 资料包整合：namelist.xlsx 必须在「脚本上一级」目录；分两步选目录
-#    第一步 = 本月【差旅申请单】目录；第二步 = 跨月资料库根目录（捞「上月资料、本月记账」的附件）
-$ws = "$env:TEMP\l2c-namelist"
-New-Item -ItemType Directory -Force "$ws\integration" | Out-Null
-Copy-Item integration\namelistget_feishu_v9.py "$ws\integration\"
-Copy-Item sample_data\月底\namelist.xlsx $ws\
-Copy-Item sample_data\月底\附件 "$ws\src" -Recurse
-Copy-Item sample_data\月底\申请单 "$ws\app" -Recurse
-python "$ws\integration\namelistget_feishu_v9.py" "$ws\app" "$ws\src"
-
-# ④ 银行流水拆分：要求「脚本上一级」目录下恰好一个流水 PDF + 一个日记账 xlsx
-$ws2 = "$env:TEMP\l2c-bank"
-New-Item -ItemType Directory -Force "$ws2\accounting" | Out-Null
-Copy-Item accounting\bankStatementSplitterBasedOnJournal.py "$ws2\accounting\"
-Copy-Item sample_data\归档\银行流水-202601.pdf, sample_data\归档\日记账202601.xlsx $ws2\
-python "$ws2\accounting\bankStatementSplitterBasedOnJournal.py"
+python sample_data/generate_sample_data.py
 ```
+
+#### ① 凭证比对（把两个文件的路径交给脚本）
+
+```bash
+python accounting/compare_vouchers_advanced.py sample_data/归档/凭证清单_修改前.xlsx sample_data/归档/凭证清单_修改后.xlsx
+```
+
+输出：与「修改后」文件同级的比对报告 `.xlsx`。
+
+#### ② 凭证拆分（把 PDF 路径交给脚本）
+
+```bash
+python accounting/split_vouchers_凭证PDF拆分.py sample_data/归档/记账凭证-202601.pdf
+```
+
+输出：`sample_data/归档/分割完成/` 下按凭证号命名的 `.pdf`。
+
+#### ③ 资料包整合（先把 feishu 脚本复制到 `sample_data\月底\integration\`，再运行）
+
+1. 把脚本复制到「数据目录」`sample_data\月底\` 的**下一级子目录**（用「移动」也行）：
+
+   ```powershell
+   New-Item -ItemType Directory -Force sample_data\月底\integration | Out-Null
+   Copy-Item integration\namelistget_feishu_v9.py sample_data\月底\integration\
+   ```
+
+2. 运行：
+
+   ```powershell
+   python sample_data\月底\integration\namelistget_feishu_v9.py
+   ```
+
+3. 按提示操作（脚本把 `sample_data\月底\` 当作数据目录，所以 `namelist.xlsx` 必须在这一层）：
+   - 弹窗 1【差旅申请单】搜索文件夹 → 选 `sample_data\月底\申请单`
+   - 弹窗 2 关键词源文件夹（模式 2）→ 选 `sample_data\月底`
+   - 之后按回车继续、按回车退出
+
+4. 结果在 `sample_data\月底\搜索结果\`：`报销单-张三-住宿费\`、`张三-住宿费.pdf`、`关键词与PDF文件对应表.xlsx`
+
+> 想免弹窗：两个目录都能用参数传 —— `python sample_data\月底\integration\namelistget_feishu_v9.py sample_data\月底\申请单 sample_data\月底`
+
+#### ④ 银行流水拆分（先新建一个只放两个文件的目录，再运行）
+
+> ⚠️ 脚本要求数据目录下**恰好 1 个 `*.pdf`** + **恰好 1 个含「日记账」的 `.xlsx`**。而 `sample_data\归档\` 里有 4 个 PDF，所以要先建一个干净目录 `sample_data\流水演示\`。
+
+1. 准备数据目录，并把脚本复制到它的**下一级子目录**（用「移动」也行）：
+
+   ```powershell
+   New-Item -ItemType Directory -Force sample_data\流水演示\accounting | Out-Null
+   Copy-Item sample_data\归档\银行流水-202601.pdf sample_data\流水演示\
+   Copy-Item sample_data\归档\日记账202601.xlsx sample_data\流水演示\
+   Copy-Item accounting\bankStatementSplitterBasedOnJournal.py sample_data\流水演示\accounting\
+   ```
+
+2. 运行：
+
+   ```powershell
+   python sample_data\流水演示\accounting\bankStatementSplitterBasedOnJournal.py
+   ```
+
+3. 结果：`sample_data\流水演示\分割完成\记-001.pdf`、`记-002.pdf`、`记-003.pdf`
+
+> 摆错时（例如数据目录里出现了第二个 PDF），脚本会打印「未找到唯一的 PDF 文件」并停止 —— 这正是它防错配的设计。
 
 运行测试（4 个脚本的无头集成断言 + 敏感扫描器规则 + 清单一致性）：
 
@@ -210,6 +254,7 @@ L2C-Auto-Console/
 │       ├── console.template.html # 控制台模板（含构建注入点）
 │       ├── build_console.py      # 构建：数据注入 → console.html + FUNCTION_MAP.md
 │       ├── run_replay.py         # 回放采集：隔离工作区真实执行脚本
+│       ├── run_sample.py         # 一键运行样例（自动摆好布局，隔离工作区）
 │       ├── sensitive_check.py    # 公开文件敏感扫描器（可复跑）
 │       ├── public_files.txt      # 公开文件清单（唯一事实源）
 │       ├── _harness/             # GUI 拦截执行器（tkinter / input / startfile）
