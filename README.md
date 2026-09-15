@@ -3,6 +3,8 @@
 
 [![quality](https://github.com/AXIRYYYY/L2C-Auto-Console/actions/workflows/quality.yml/badge.svg?branch=main)](https://github.com/AXIRYYYY/L2C-Auto-Console/actions/workflows/quality.yml?query=branch%3Amain)
 
+> **▶ 在线 Demo（GitHub Pages，免安装、点击即开）**：<https://axiryyyy.github.io/L2C-Auto-Console/demo/console.html>
+
 > 把财务规则前置到审批前端（事前预算卡控），把商机与回款数据打通（实时 ROI），
 > 让「业务审批 → 财务核算 → 数据归档 → 审计溯源」全程自动化——月结从 3 天压缩到 4 小时。
 
@@ -18,7 +20,7 @@
 
 | 步骤 | 说明 |
 | ---- | ---- |
-| 1 | 打开 `docs/demo/console.html`（双击即可：零依赖、无外链、断网可用） |
+| 1 | 打开 [在线 Demo](https://axiryyyy.github.io/L2C-Auto-Console/demo/console.html)（GitHub Pages，点击即开）；也可双击本地 `docs/demo/console.html`：零依赖、无外链、断网可用 |
 | 2 | 「总览」看五个阶段的模块全景，点卡片查看功能档案与运行回放 |
 | 3 | 「功能地图」看 59 个脚本的数据流关联与 14 组版本谱系 |
 | 4 | 「审计追溯」看一笔凭证从整本 PDF 到审计提取的完整证据链 |
