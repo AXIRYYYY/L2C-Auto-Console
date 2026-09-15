@@ -22,6 +22,7 @@ integration/namelistget_feishu_v9.py
 # ---- 演示层文档 ----
 docs/FUNCTION_MAP.md
 docs/function_map.json
+docs/index.html
 docs/SENSITIVE_SCAN_REPORT.md
 
 # ---- 控制台与工具 ----
