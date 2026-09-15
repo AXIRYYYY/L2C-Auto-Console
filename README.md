@@ -63,12 +63,49 @@
 每个脚本头部写明用途 / 输入 / 输出 / 用法 / 依赖，并标注对应的回放文件——**代码与回放可互相印证**。
 带弹窗的脚本支持命令行参数：**不带参数仍然弹窗**，向后兼容。
 
+### 4.1 先理解「目录约定」（一条规则）
+
+这些脚本的原始用法是**复制到工作目录再运行**——脚本把**「脚本所在目录的上一级」**当作数据目录。
+
+> **由来**：早期所有脚本平铺在项目根目录（数据也在根目录）；后来按模块整理进 `accounting/`、`integration/` 子目录时，为保持行为不变而保留了这层目录假设。所以现在的等价做法是：**把脚本放进数据目录的下一级子目录**（如 `<工作目录>/accounting/xxx.py`，数据放 `<工作目录>/`）。
+>
+> ⚠️ 已知不一致：`bankStatementSplitterBasedOnJournal.py` 的提示语写「与脚本放在同一文件夹下」，而实际扫描的是上一级 —— 见「七、已知工程债」。
+
+### 4.2 推荐：一键运行（隔离工作区，仓库根零污染）
+
 ```bash
-# 无头运行示例（先用 sample_data 生成样例数据）
-python sample_data/generate_sample_data.py
+python sample_data/generate_sample_data.py       # 生成样例假数据（只需一次）
+python docs/demo/run_sample.py --list            # 查看可运行样例
+python docs/demo/run_sample.py voucher_compare   # 运行（自动按正确布局摆放脚本与数据）
+```
+
+`run_sample.py` 做的就是**把「复制脚本到工作目录」这一步自动化**：脚本按 `<工作区>/accounting/`、`<工作区>/integration/` 摆好，数据放在工作区根目录；运行完打印日志与产物清单。工作区默认保留在 `docs/demo/.sample_run/`（加 `--clean` 则运行后删除）。
+
+### 4.3 手动运行（等价做法）
+
+```bash
+# ① 凭证比对：数据路径由参数指定，输出落在「修改后」文件旁
 python accounting/compare_vouchers_advanced.py sample_data/归档/凭证清单_修改前.xlsx sample_data/归档/凭证清单_修改后.xlsx
+
+# ② 凭证拆分：输出落在所选 PDF 同级
 python accounting/split_vouchers_凭证PDF拆分.py sample_data/归档/记账凭证-202601.pdf
-python integration/namelistget_feishu_v9.py sample_data/月底/申请单 sample_data/月底/附件
+
+# ③ 资料包整合：namelist.xlsx 必须在「脚本上一级」目录；分两步选目录
+#    第一步 = 本月【差旅申请单】目录；第二步 = 跨月资料库根目录（捞「上月资料、本月记账」的附件）
+$ws = "$env:TEMP\l2c-namelist"
+New-Item -ItemType Directory -Force "$ws\integration" | Out-Null
+Copy-Item integration\namelistget_feishu_v9.py "$ws\integration\"
+Copy-Item sample_data\月底\namelist.xlsx $ws\
+Copy-Item sample_data\月底\附件 "$ws\src" -Recurse
+Copy-Item sample_data\月底\申请单 "$ws\app" -Recurse
+python "$ws\integration\namelistget_feishu_v9.py" "$ws\app" "$ws\src"
+
+# ④ 银行流水拆分：要求「脚本上一级」目录下恰好一个流水 PDF + 一个日记账 xlsx
+$ws2 = "$env:TEMP\l2c-bank"
+New-Item -ItemType Directory -Force "$ws2\accounting" | Out-Null
+Copy-Item accounting\bankStatementSplitterBasedOnJournal.py "$ws2\accounting\"
+Copy-Item sample_data\归档\银行流水-202601.pdf, sample_data\归档\日记账202601.xlsx $ws2\
+python "$ws2\accounting\bankStatementSplitterBasedOnJournal.py"
 ```
 
 运行测试（4 个脚本的无头集成断言 + 敏感扫描器规则 + 清单一致性）：
@@ -110,6 +147,7 @@ python -m pytest docs/demo/tests -q
 | 脚本间「暗契约」 | 靠文件名前缀 / Excel 列位约定串联，换人接手容易断 | 抽出中间产物 manifest（字段与命名注册表），入口处加 schema 校验 |
 | 缺少自动化测试 | 关键路径原先无测试（本仓库已为公开样本补上集成测试作为第一步） | 以样例数据为夹具补齐各脚本契约测试，纳入 CI |
 | 交互式入口 | 历史脚本依赖弹窗，不适合批处理与 CI | 新增命令行入口（公开的 4 个样本已完成），逐步统一为 `--input/--output` |
+| 隐式目录约定 | 脚本把「所在目录的上一级」当数据目录（源自早期"脚本平铺在项目根"的布局，分目录后加了第 2 层 `dirname` 保持行为）；`bankStatementSplitterBasedOnJournal.py` 的提示语写「与脚本放在同一文件夹下」，与实际扫描目录不一致 | 改为显式 `--input/--output` 参数，去掉隐式目录假设；当前已在文档中给出正确布局，并提供 `run_sample.py` 一键隔离运行器 |
 | 数据接入方式 | 剪贴板抓取 + 本地文件解析，依赖页面结构稳定 | 已规划飞书/钉钉开放 API 直连，彻底解耦 |
 | 版本并存 | 存在 v1/v2 历史版本（见功能地图的版本谱系） | 收敛为单一实现 + 兼容层，清理已被替代版本 |
 

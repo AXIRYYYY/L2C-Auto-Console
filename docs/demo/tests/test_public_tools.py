@@ -112,6 +112,31 @@ def run_cli(script_rel, args, cwd):
     return proc
 
 
+def test_run_sample_list():
+    proc = subprocess.run(
+        [PY, str(DEMO / "run_sample.py"), "--list"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
+    )
+    assert proc.returncode == 0, proc.stdout[-800:]
+    for slug in ("voucher_compare", "voucher_split", "namelist_pack", "bank_split"):
+        assert slug in proc.stdout, f"样例清单缺少 {slug}"
+
+
+@pytestmark_sample
+def test_run_sample_quickstart():
+    """README 推荐的「一键运行」路径必须真的能跑通（不依赖中文字体）"""
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "utf-8"
+    proc = subprocess.run(
+        [PY, str(DEMO / "run_sample.py"), "voucher_compare", "--clean"],
+        cwd=str(REPO), capture_output=True, text=True, env=env,
+        encoding="utf-8", errors="replace", timeout=300,
+    )
+    assert proc.returncode == 0, proc.stdout[-1500:]
+    assert "退出码：0" in proc.stdout
+    assert "比对完成" in proc.stdout
+
+
 def stage(tmp_path, script_rel):
     dst = tmp_path / script_rel
     dst.parent.mkdir(parents=True, exist_ok=True)

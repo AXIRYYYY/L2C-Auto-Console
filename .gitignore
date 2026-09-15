@@ -22,6 +22,7 @@
 !docs/demo/console.template.html
 !docs/demo/build_console.py
 !docs/demo/run_replay.py
+!docs/demo/run_sample.py
 !docs/demo/sensitive_check.py
 !docs/demo/public_files.txt
 !docs/demo/_harness/run_with_patches.py
