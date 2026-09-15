@@ -10,17 +10,17 @@
     "辅助/现金流量表202601.xlsx",
     "辅助/现金流量表202602.xlsx"
   ],
-  "started_at": "2026-09-16 01:04:37",
+  "started_at": "2026-09-16 02:34:54",
   "dialogs": [],
   "outputs": [
     {
       "path": "cashflow_merge.log",
       "bytes": 148,
       "kind": "text",
-      "preview": "2026-09-16 01:04:38,710 - INFO: �ɹ������ļ�: <工作区>\\cashflow_merge\\�ֽ��������ϲ�_20260916_0104.xlsx\n"
+      "preview": "2026-09-16 02:34:55,799 - INFO: �ɹ������ļ�: <工作区>\\cashflow_merge\\�ֽ��������ϲ�_20260916_0234.xlsx\n"
     },
     {
-      "path": "现金流量表合并_20260916_0104.xlsx",
+      "path": "现金流量表合并_20260916_0234.xlsx",
       "bytes": 5892,
       "kind": "xlsx",
       "preview": {
@@ -88,7 +88,7 @@
       }
     }
   ],
-  "log": "合并完成！输出文件：\n<工作区>\\cashflow_merge\\现金流量表合并_20260916_0104.xlsx\n",
+  "log": "合并完成！输出文件：\n<工作区>\\cashflow_merge\\现金流量表合并_20260916_0234.xlsx\n",
   "exit_code": 0,
-  "duration_s": 1.0
+  "duration_s": 1.12
 }

@@ -36,7 +36,7 @@ def process_voucher_pdf_final_with_page_count():
     if getattr(sys, 'frozen', False):
         application_path = os.path.dirname(sys.executable)
     else:
-        application_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 项目根目录
+        application_path = os.path.dirname(os.path.abspath(__file__))  # 脚本所在目录（弹窗默认位置）
 
     # --- 1. 选择 PDF 文件：命令行参数优先，否则弹窗 ---
     cli_args = [a for a in sys.argv[1:] if a.strip()]

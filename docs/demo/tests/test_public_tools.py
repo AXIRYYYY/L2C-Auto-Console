@@ -104,8 +104,9 @@ pytestmark_sample = pytest.mark.skipif(not SAMPLE.exists(), reason="需要 sampl
 def run_cli(script_rel, args, cwd):
     env = dict(os.environ)
     env["PYTHONIOENCODING"] = "utf-8"
+    # 脚本被 stage() 复制到工作区根（与数据同层），这里按文件名取
     proc = subprocess.run(
-        [PY, str(cwd / script_rel), *args],
+        [PY, str(cwd / Path(script_rel).name), *args],
         cwd=str(cwd), capture_output=True, text=True, env=env,
         encoding="utf-8", errors="replace", timeout=180,
     )
@@ -138,8 +139,8 @@ def test_run_sample_quickstart():
 
 
 def stage(tmp_path, script_rel):
-    dst = tmp_path / script_rel
-    dst.parent.mkdir(parents=True, exist_ok=True)
+    # 脚本与数据放同一层：脚本把「自己所在目录」当作数据目录
+    dst = tmp_path / Path(script_rel).name
     shutil.copy2(REPO / script_rel, dst)
     return dst
 

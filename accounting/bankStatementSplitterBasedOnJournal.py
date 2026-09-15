@@ -3,10 +3,10 @@
 用途：按电子日记账 A 列标签（通常为凭证号）把银行流水 PDF 逐笔拆分为独立文件，
       并在行数与页数明显不匹配时拒绝执行（防止文件错配）。
 
-输入：项目根目录下「恰好一个」银行流水 PDF + 「恰好一个」含「日记账」的 xlsx
+输入：脚本同目录下「恰好一个」银行流水 PDF + 「恰好一个」含「日记账」的 xlsx
 输出：与原 PDF 同级的「分割完成/{标签}.pdf」
 
-用法：python bankStatementSplitterBasedOnJournal.py（无交互，自动扫描项目根目录）
+用法：python bankStatementSplitterBasedOnJournal.py（无交互，自动扫描脚本所在目录）
 
 依赖：pypdf, openpyxl
 对应回放：docs/demo/replay/bank_split.json
@@ -28,7 +28,7 @@ def check_unique_pdf():
     """
     检查是否有唯一的 PDF 文件。
     """
-    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 项目根目录
+    script_dir = os.path.dirname(os.path.abspath(__file__))  # 脚本所在目录（= 数据目录）
     pdf_files = [file for file in os.listdir(script_dir) if file.endswith('.pdf')]
     if len(pdf_files)!= 1:
         print("未找到唯一的 PDF 文件，请确保有且仅有一个 PDF 文件与脚本放在同一文件夹下！")
@@ -40,7 +40,7 @@ def check_journal_xlsx():
     """
     检查是否有唯一包含'日记账'的 Excel 文件。
     """
-    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 项目根目录
+    script_dir = os.path.dirname(os.path.abspath(__file__))  # 脚本所在目录（= 数据目录）
     xlsx_files = [file for file in os.listdir(script_dir) if '日记账' in file and file.endswith('.xlsx')]
     if len(xlsx_files)!= 1:
         print("未找到唯一包含'日记账'的 Excel 文件，请确保有且仅有一个相应文件与脚本放在同一文件夹下！")
@@ -52,7 +52,7 @@ def get_pdf_and_xlsx_paths():
     """
     获取唯一的 PDF 文件和包含'日记账'的 Excel 文件的路径。
     """
-    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 项目根目录
+    script_dir = os.path.dirname(os.path.abspath(__file__))  # 脚本所在目录（= 数据目录）
     pdf_files = [file for file in os.listdir(script_dir) if file.endswith('.pdf')]
     xlsx_files = [file for file in os.listdir(script_dir) if '日记账' in file and file.endswith('.xlsx')]
     return os.path.join(script_dir, pdf_files[0]), os.path.join(script_dir, xlsx_files[0])

@@ -65,11 +65,17 @@
 
 ### 4.1 先理解「目录约定」（一条规则）
 
-这些脚本的原始用法是**复制到工作目录再运行**——脚本把**「脚本所在目录的上一级」**当作数据目录。
+这些脚本的原始用法是**把脚本复制到数据文件夹里再运行**——脚本把**「自己所在目录」**当作数据目录：
 
-> **由来**：早期所有脚本平铺在项目根目录（数据也在根目录）；后来按模块整理进 `accounting/`、`integration/` 子目录时，为保持行为不变而保留了这层目录假设。所以现在的等价做法是：**把脚本放进数据目录的下一级子目录**（如 `<工作目录>/accounting/xxx.py`，数据放 `<工作目录>/`）。
->
-> ⚠️ 已知不一致：`bankStatementSplitterBasedOnJournal.py` 的提示语写「与脚本放在同一文件夹下」，而实际扫描的是上一级 —— 见「七、已知工程债」。
+```
+<数据文件夹>/
+├── 脚本.py            ← 脚本放在这里
+├── namelist.xlsx     ← 脚本要读的数据也放在这里
+└── ...
+```
+
+> - 例外：`compare_vouchers_advanced.py` / `split_vouchers_凭证PDF拆分.py` 的数据路径由命令行参数或弹窗指定，输出落在输入文件同级。
+> - 本仓库的 `accounting/`、`integration/` 只是**存放脚本的「货架」**；要运行请把脚本复制到你的数据文件夹里（下面 §4.2 的一键运行器会自动替你摆放）。
 
 ### 4.2 推荐：一键运行（隔离工作区，仓库根零污染）
 
@@ -79,7 +85,7 @@ python docs/demo/run_sample.py --list            # 查看可运行样例
 python docs/demo/run_sample.py voucher_compare   # 运行（自动按正确布局摆放脚本与数据）
 ```
 
-`run_sample.py` 做的就是**把「复制脚本到工作目录」这一步自动化**：脚本按 `<工作区>/accounting/`、`<工作区>/integration/` 摆好，数据放在工作区根目录；运行完打印日志与产物清单。工作区默认保留在 `docs/demo/.sample_run/`（加 `--clean` 则运行后删除）。
+`run_sample.py` 做的就是**把「复制脚本到数据文件夹」这一步自动化**：脚本与样例数据都放在工作区**同一层**；运行完打印日志与产物清单。工作区默认保留在 `docs/demo/.sample_run/`（加 `--clean` 则运行后删除）。
 
 ### 4.3 手动运行（照着做即可）
 
@@ -105,47 +111,47 @@ python accounting/split_vouchers_凭证PDF拆分.py sample_data/归档/记账凭
 
 输出：`sample_data/归档/分割完成/` 下按凭证号命名的 `.pdf`。
 
-#### ③ 资料包整合（先把 feishu 脚本复制到 `sample_data\月底\integration\`，再运行）
+#### ③ 资料包整合（把 feishu 脚本复制到 `sample_data\月底\` 再运行）
 
-1. 把脚本复制到「数据目录」`sample_data\月底\` 的**下一级子目录**（用「移动」也行）：
+1. 把脚本复制到数据文件夹 `sample_data\月底\`（与 `namelist.xlsx` **同一层**；用「移动」也行）：
 
    ```powershell
-   New-Item -ItemType Directory -Force sample_data\月底\integration | Out-Null
-   Copy-Item integration\namelistget_feishu_v9.py sample_data\月底\integration\
+   Copy-Item integration\namelistget_feishu_v9.py sample_data\月底\
    ```
 
 2. 运行：
 
    ```powershell
-   python sample_data\月底\integration\namelistget_feishu_v9.py
+   python sample_data\月底\namelistget_feishu_v9.py
    ```
 
-3. 按提示操作（脚本把 `sample_data\月底\` 当作数据目录，所以 `namelist.xlsx` 必须在这一层）：
+3. 按提示操作（`namelist.xlsx` 就在脚本旁边）：
    - 弹窗 1【差旅申请单】搜索文件夹 → 选 `sample_data\月底\申请单`
    - 弹窗 2 关键词源文件夹（模式 2）→ 选 `sample_data\月底`
    - 之后按回车继续、按回车退出
 
 4. 结果在 `sample_data\月底\搜索结果\`：`报销单-张三-住宿费\`、`张三-住宿费.pdf`、`关键词与PDF文件对应表.xlsx`
 
-> 想免弹窗：两个目录都能用参数传 —— `python sample_data\月底\integration\namelistget_feishu_v9.py sample_data\月底\申请单 sample_data\月底`
+> 想免弹窗：两个目录都能用参数传 —— `python sample_data\月底\namelistget_feishu_v9.py sample_data\月底\申请单 sample_data\月底`
+> （用完记得把 `sample_data\月底\namelistget_feishu_v9.py` 删掉，它只是为了让脚本能和数据同层。）
 
-#### ④ 银行流水拆分（先新建一个只放两个文件的目录，再运行）
+#### ④ 银行流水拆分（新建一个只放两个文件的目录，把脚本也放进去）
 
-> ⚠️ 脚本要求数据目录下**恰好 1 个 `*.pdf`** + **恰好 1 个含「日记账」的 `.xlsx`**。而 `sample_data\归档\` 里有 4 个 PDF，所以要先建一个干净目录 `sample_data\流水演示\`。
+> ⚠️ 脚本要求**脚本同目录**下**恰好 1 个 `*.pdf`** + **恰好 1 个含「日记账」的 `.xlsx`**。而 `sample_data\归档\` 里有 4 个 PDF，所以要先建一个干净目录 `sample_data\流水演示\`。
 
-1. 准备数据目录，并把脚本复制到它的**下一级子目录**（用「移动」也行）：
+1. 准备数据文件夹，并把脚本复制进去（与 pdf、日记账**同一层**；用「移动」也行）：
 
    ```powershell
-   New-Item -ItemType Directory -Force sample_data\流水演示\accounting | Out-Null
+   New-Item -ItemType Directory -Force sample_data\流水演示 | Out-Null
    Copy-Item sample_data\归档\银行流水-202601.pdf sample_data\流水演示\
    Copy-Item sample_data\归档\日记账202601.xlsx sample_data\流水演示\
-   Copy-Item accounting\bankStatementSplitterBasedOnJournal.py sample_data\流水演示\accounting\
+   Copy-Item accounting\bankStatementSplitterBasedOnJournal.py sample_data\流水演示\
    ```
 
 2. 运行：
 
    ```powershell
-   python sample_data\流水演示\accounting\bankStatementSplitterBasedOnJournal.py
+   python sample_data\流水演示\bankStatementSplitterBasedOnJournal.py
    ```
 
 3. 结果：`sample_data\流水演示\分割完成\记-001.pdf`、`记-002.pdf`、`记-003.pdf`
@@ -191,7 +197,7 @@ python -m pytest docs/demo/tests -q
 | 脚本间「暗契约」 | 靠文件名前缀 / Excel 列位约定串联，换人接手容易断 | 抽出中间产物 manifest（字段与命名注册表），入口处加 schema 校验 |
 | 缺少自动化测试 | 关键路径原先无测试（本仓库已为公开样本补上集成测试作为第一步） | 以样例数据为夹具补齐各脚本契约测试，纳入 CI |
 | 交互式入口 | 历史脚本依赖弹窗，不适合批处理与 CI | 新增命令行入口（公开的 4 个样本已完成），逐步统一为 `--input/--output` |
-| 隐式目录约定 | 脚本把「所在目录的上一级」当数据目录（源自早期"脚本平铺在项目根"的布局，分目录后加了第 2 层 `dirname` 保持行为）；`bankStatementSplitterBasedOnJournal.py` 的提示语写「与脚本放在同一文件夹下」，与实际扫描目录不一致 | 改为显式 `--input/--output` 参数，去掉隐式目录假设；当前已在文档中给出正确布局，并提供 `run_sample.py` 一键隔离运行器 |
+| 隐式目录约定 | 脚本把「自己所在目录」当数据目录（早期沿用至今的约定）：好处是「复制脚本到数据文件夹即可运行」，代价是脚本必须与数据同层 | 改为显式 `--input/--output` 参数，去掉隐式目录假设；当前已在文档 §4 给出正确摆法，并提供 `run_sample.py` 一键隔离运行器 |
 | 数据接入方式 | 剪贴板抓取 + 本地文件解析，依赖页面结构稳定 | 已规划飞书/钉钉开放 API 直连，彻底解耦 |
 | 版本并存 | 存在 v1/v2 历史版本（见功能地图的版本谱系） | 收敛为单一实现 + 兼容层，清理已被替代版本 |
 

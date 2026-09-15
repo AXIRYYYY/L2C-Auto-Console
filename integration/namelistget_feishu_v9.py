@@ -3,8 +3,8 @@
 用途：按关键词从源文件夹匹配「报销单文件夹 + 附件 + 关联申请单」，复制归集、
       图片附件转 PDF 后合并为整包 PDF，并提取成本编号生成对账表与错误报告。
 
-输入：namelist.xlsx（A 列关键词）、关键词源文件夹、差旅申请单搜索文件夹、关联申请单 PDF
-输出：搜索结果/{关键词}/ 资料包、{关键词}.pdf、关键词与PDF文件对应表.xlsx、合并文件报错信息.xlsx
+输入：namelist.xlsx（A 列关键词，需与本脚本放在同一文件夹）、关键词源文件夹、差旅申请单搜索文件夹、关联申请单 PDF
+输出（生成在脚本所在文件夹）：搜索结果/{关键词}/ 资料包、{关键词}.pdf、关键词与PDF文件对应表.xlsx、合并文件报错信息.xlsx
 
 用法：
     python namelistget_feishu_v9.py                                # 全部弹窗选择
@@ -60,7 +60,8 @@ def merge_folders(source, destination):
 
 def copy_files_based_on_keywords():
     # --- 1. 初始化设置 ---
-    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 项目根目录
+    script_dir = os.path.dirname(os.path.abspath(__file__))  # 脚本所在目录（= 数据目录）
+    print(f"数据目录: {script_dir}")
     
     print("准备中...")
     if USE_CLI:

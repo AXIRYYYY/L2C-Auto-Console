@@ -1,13 +1,12 @@
 """一键运行公开的代码样本（隔离工作区，仓库根零污染）。
 
-对齐脚本的原始用法：「把脚本复制到工作目录再运行」——
-脚本会把「所在目录的上一级」当作数据目录。
+对齐脚本的原始用法：「把脚本复制到数据文件夹再运行」——
+脚本会把「自己所在目录」当作数据目录。
 本工具按同样布局把脚本与样例数据放进隔离工作区后再运行：
 
     docs/demo/.sample_run/<样例>/
-    ├── accounting/xxx.py        ← 脚本放在子目录里，其「上一级」即工作区
-    ├── integration/xxx.py
-    ├── <样例数据文件>             ← 脚本要读取的数据放在工作区根
+    ├── xxx.py                   ← 脚本与数据放在同一层
+    ├── <样例数据文件>             ← 脚本要读取的数据
     └── src/ app/ ...            ← 需要整目录匹配的样例（资料包整合）
 
 用法:
@@ -82,8 +81,8 @@ def snapshot(root):
 
 
 def stage(spec, ws):
-    script_dst = os.path.join(ws, spec["script"].replace("/", os.sep))
-    os.makedirs(os.path.dirname(script_dst), exist_ok=True)
+    # 脚本与样例数据放在同一层（脚本把「所在目录」当数据目录）
+    script_dst = os.path.join(ws, os.path.basename(spec["script"]))
     shutil.copy2(os.path.join(BASE, spec["script"].replace("/", os.sep)), script_dst)
     for rel in spec["files"]:
         shutil.copy2(os.path.join(SAMPLE, rel.replace("/", os.sep)), os.path.join(ws, os.path.basename(rel)))
@@ -121,7 +120,7 @@ def main():
     print("样例：%s" % spec["title"])
     print("脚本：%s" % spec["script"])
     print("工作区：%s" % ws)
-    print("（脚本把「所在目录的上一级」当数据目录，这里即工作区）")
+    print("（脚本把「所在目录」当数据目录，这里即工作区）")
     print("=" * 66)
 
     env = dict(os.environ)

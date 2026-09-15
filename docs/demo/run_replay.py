@@ -50,7 +50,22 @@ def cp_tree(src, dst):
     return dst
 
 
+# 公开的 4 个样本已改为「脚本与数据同层」；其余旧脚本仍是「脚本放子目录、数据在上一级」
+SAME_FOLDER_SCRIPTS = {
+    "accounting/compare_vouchers_advanced.py",
+    "accounting/split_vouchers_凭证PDF拆分.py",
+    "accounting/bankStatementSplitterBasedOnJournal.py",
+    "integration/namelistget_feishu_v9.py",
+}
+
+
 def stage_script(ws, script_rel):
+    if script_rel in SAME_FOLDER_SCRIPTS:
+        # 新约定：脚本与数据放在同一层（脚本把「自己所在目录」当数据目录）
+        dst = os.path.join(ws, os.path.basename(script_rel))
+        shutil.copy2(os.path.join(BASE, script_rel.replace("/", os.sep)), dst)
+        return dst
+    # 旧约定：脚本放子目录，其「上一级」即工作区（数据在上一级）
     dst = os.path.join(ws, script_rel.replace("/", os.sep))
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     shutil.copy2(os.path.join(BASE, script_rel.replace("/", os.sep)), dst)
